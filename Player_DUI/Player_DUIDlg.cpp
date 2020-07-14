@@ -245,7 +245,6 @@ void CPlayerDUIDlg::createSpeedMenuItem(std::string strID, std::string strText, 
 		pSpeedMenu->addChild(pMenuItem);
 	}
 }
-
 void CPlayerDUIDlg::on_video_render_cb(char* data, int width, int height)
 {
 	CDiv* pBk = uiMgr.getElementByID(ID_DIV_BK);
