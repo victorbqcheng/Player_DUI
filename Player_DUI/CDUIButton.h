@@ -1,8 +1,6 @@
 #pragma once
 #include "Div.h"
 
-
-
 class CDUIButton : public CDiv
 {
 public:

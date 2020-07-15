@@ -5,7 +5,6 @@
 #include "CVideoDecoder.h"
 #include "CAudioDecoder.h"
 #include "CPlayAudioBySDL.h"
-#include "CPlayAudioBySDL2.h"
 
 using RENDER_CALLBACK = std::function<void(char* data, int width, int height)>;
 

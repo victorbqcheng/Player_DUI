@@ -147,11 +147,8 @@ std::tuple<char*, int> CAudioDecoder::get_pcm(std::shared_ptr<AVFrame> p_frame)
 {
 	if (p_frame)
 	{
-		//set_swr_opts(p_frame);
-
 		int ret_samples = swr_convert(au_convert_ctx, (uint8_t**)&pcm_out_buffer, pcm_out_buffer_size,
 			(const uint8_t**)p_frame->data, p_frame->nb_samples);
-
 
 		int ret_buffer_size = av_samples_get_buffer_size(NULL,
 			p_codec_ctx_audio->channels,

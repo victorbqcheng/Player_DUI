@@ -1,5 +1,5 @@
 /***************************************************************************
-Author: victor cheng 2019
+Author: victor cheng
 **************************************************************************/
 #pragma once
 
@@ -126,7 +126,7 @@ private:
 	virtual bool onMouseLeave();
 protected:
 	//由父元素调用该函数，来更新子元素的状态
-	void syncParentVisible(bool bParentVisible);
+	//void syncParentVisible(bool bParentVisible);
 	void updateRgn(DIRECTION dir=DIR_DOWN);
 	void combineChildrenRgn();
 	void setUIMgr(CUIMgr* pUIMgr);
@@ -140,11 +140,6 @@ protected:
 	//大小
 	int m_nWidth;
 	int m_nHeight;
-	//1.父元素不可见则子元素不可见,
-	//2.父元素可见
-	//	2.1 子元素不可见，则仍不可见
-	//	2.2 子元素也可见，则可见
-	bool m_bParentVisible = true;
 	//可见
 	bool m_bVisible = true;
 

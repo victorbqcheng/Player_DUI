@@ -1,5 +1,5 @@
 /***************************************************************************
-Author: victor cheng 2019
+Author: victor cheng
 **************************************************************************/
 #include "pch.h"
 #include "Div.h"
@@ -36,7 +36,7 @@ CDiv::CDiv(std::string strID)
 	m_ml = NULL;
 	//
 	m_pDivParent = NULL;
-	m_bParentVisible = true;
+	//m_bParentVisible = true;
 	m_bVisible = true;
 	m_rgnClip = CreateRectRgn(0, 0, 0, 0);
 	m_rgn = CreateRectRgn(0, 0, 0, 0);
@@ -143,14 +143,14 @@ void CDiv::setVisible(bool bVisible)
 {
 	m_bVisible = bVisible;
 
-	for (auto it = m_children.begin(); it != m_children.end(); it++)
-	{
-		std::deque<CDiv*>& dq = it->second;
-		for (auto it2 = dq.begin(); it2 != dq.end(); it2++)
-		{
-			(*it2)->syncParentVisible(m_bVisible);
-		}
-	}
+// 	for (auto it = m_children.begin(); it != m_children.end(); it++)
+// 	{
+// 		std::deque<CDiv*>& dq = it->second;
+// 		for (auto it2 = dq.begin(); it2 != dq.end(); it2++)
+// 		{
+// 			(*it2)->syncParentVisible(m_bVisible);
+// 		}
+// 	}
 
 	updateRgn();
 	if (m_pDivParent != NULL)
@@ -162,14 +162,6 @@ void CDiv::setVisible(bool bVisible)
 bool CDiv::isVisible()
 {
 	//只有当父元素和自己都是可见状态时，才可见
-// 	if (m_bParentVisible && m_bVisible)
-// 	{
-// 		return true;
-// 	}
-// 	else //否则不可见
-// 	{
-// 		return false;
-// 	}
 	return m_bVisible;
 }
 
@@ -186,7 +178,6 @@ int CDiv::getZIndex()
 void CDiv::setClip(bool bClip)
 {
 	m_bClip = bClip;
-	//TODO:updateRgn();--?
 }
 
 bool CDiv::isClip()
@@ -263,22 +254,18 @@ void CDiv::setFontSize(int nFontSize)
 //
 void CDiv::addChild(CDiv* pDivChild)
 {
-	// 	m_children.push_front(pDivChild);
-	// 	pDivChild->setParent(this);
-
 	int nZIndex = pDivChild->getZIndex();
 	if (m_children.find(nZIndex) != m_children.end())
 	{
 		m_children[nZIndex].push_back(pDivChild);
-		pDivChild->setParent(this);
 	}
 	else
 	{
 		std::deque<CDiv*> dq;
 		dq.push_front(pDivChild);
-		pDivChild->setParent(this);
 		m_children[nZIndex] = dq;
 	}
+	pDivChild->setParent(this);
 	pDivChild->setUIMgr(m_pUIMgr);
 	updateRgn();
 	if (m_pDivParent != NULL)
@@ -286,7 +273,7 @@ void CDiv::addChild(CDiv* pDivChild)
 		m_pDivParent->updateRgn(DIR_UP);
 	}
 	//更新子元素的m_bParentVisible
-	pDivChild->syncParentVisible(m_bVisible);
+	//pDivChild->syncParentVisible(m_bVisible);
 }
 CDiv* CDiv::getChildByID(std::string const& strID)
 {
@@ -672,19 +659,19 @@ void CDiv::setTextColor(COLORREF color)
 	m_textColor = color;
 }
 
-void CDiv::syncParentVisible(bool bParentVisible)
-{
-	return;
-	m_bParentVisible = bParentVisible;
-	for (auto it = m_children.begin(); it != m_children.end(); it++)
-	{
-		std::deque<CDiv*>& dq = it->second;
-		for (auto it2 = dq.begin(); it2 != dq.end(); it2++)
-		{
-			(*it2)->syncParentVisible(m_bVisible);
-		}
-	}
-}
+// void CDiv::syncParentVisible(bool bParentVisible)
+// {
+// 	return;
+// 	m_bParentVisible = bParentVisible;
+// 	for (auto it = m_children.begin(); it != m_children.end(); it++)
+// 	{
+// 		std::deque<CDiv*>& dq = it->second;
+// 		for (auto it2 = dq.begin(); it2 != dq.end(); it2++)
+// 		{
+// 			(*it2)->syncParentVisible(m_bVisible);
+// 		}
+// 	}
+// }
 
 void CDiv::updateRgn(DIRECTION dir /*= DIR_DOWN*/)
 {
@@ -726,18 +713,23 @@ void CDiv::updateRgn(DIRECTION dir /*= DIR_DOWN*/)
 //
 void CDiv::combineChildrenRgn()
 {
-	//如果自己m_bVisible==false即使子元素的m_bVisible==true
-	//这时子元素仍应该是不可见的, 仍然不能把子元素的rgn合并到该元素上
-	if (m_bClip == false && m_bVisible == true)		//combine children rgn
+	//当m_bVisible==false时, 无需合并子元素rgn
+	if (m_bVisible == false)
 	{
-		for (auto it = m_children.begin(); it != m_children.end(); it++)
+		return;
+	}
+	//当m_bClip==true时,超出自己范围的子元素被剪裁,无需合并子元素rgn
+	if (m_bClip == true)
+	{
+		return;
+	}
+	for (auto it = m_children.begin(); it != m_children.end(); it++)
+	{
+		std::deque<CDiv*>& dq = it->second;
+		for (auto it2 = dq.begin(); it2 != dq.end(); it2++)
 		{
-			std::deque<CDiv*>& dq = it->second;
-			for (auto it2 = dq.begin(); it2 != dq.end(); it2++)
-			{
-				HRGN hRgn = (*it2)->getRgn();
-				::CombineRgn(m_rgn, m_rgn, hRgn, RGN_OR);
-			}
+			HRGN hRgn = (*it2)->getRgn();
+			::CombineRgn(m_rgn, m_rgn, hRgn, RGN_OR);
 		}
 	}
 }
