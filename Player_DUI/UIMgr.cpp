@@ -105,6 +105,8 @@ bool CUIMgr::hookWndMsg(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			HDC hDC = GetDC(hWnd);
 			//onPaint(hWnd, hDC);
 			ReleaseDC(hWnd, hDC);
+			RECT rc{ 0, 0, 1, 1 };
+			InvalidateRect(m_hWndContainer, &rc, FALSE);
 		}
 		break;
 	case WM_SIZE:

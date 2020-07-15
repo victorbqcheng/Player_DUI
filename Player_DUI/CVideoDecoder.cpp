@@ -144,6 +144,11 @@ int CVideoDecoder::get_height()
 	}
 }
 
+void CVideoDecoder::flush()
+{
+	clear_data();
+}
+
 void CVideoDecoder::clear_data()
 {
 	AVFrame* p_frm = NULL;
@@ -208,6 +213,20 @@ int CVideoDecoder::get_stream_index()
 	return stream_index;
 }
 
+int64_t CVideoDecoder::pts_to_milsecond(int64_t pts)
+{
+	double d = av_q2d(p_video_stream->time_base);
+	int64_t milsecond = int64_t(pts *1.0 * d * 1000);
+	return milsecond;
+}
+
+int64_t CVideoDecoder::milsecond_to_pts(int64_t milsecond)
+{
+	double d = av_q2d(p_video_stream->time_base);
+	int64_t pts = int64_t(milsecond / 1000.0 / d);
+	return pts;
+}
+
 int CVideoDecoder::decode_video_thread()
 {
 	int ret = 0;
@@ -229,9 +248,19 @@ int CVideoDecoder::decode_video_thread()
 		}
 		//VideoPacketsInQueue() > 0
 		std::shared_ptr<AVPacket> p_packet = p_packet_reader->get_video_packet();
+		if ((char*)p_packet->data == CPacketReader::FLUSH)
+		{
+			avcodec_flush_buffers(p_codec_ctx_video);
+			util::thread_sleep(5);
+			continue;
+		}
 		ret = avcodec_send_packet(p_codec_ctx_video, p_packet.get());
 		if (ret != 0)
 		{
+			if (ret == AVERROR_EOF)
+			{
+				break;
+			}
 			break;
 		}
 		AVFrame* p_frm = av_frame_alloc();
@@ -246,9 +275,6 @@ int CVideoDecoder::decode_video_thread()
 			break;
 		}
 		queue_video_frames.push(p_frame);
-// 		char buf[128] = { 0 };
-// 		sprintf(buf, "queue_video_frames size:%d\r\n", queue_video_frames.size());
-// 		util::log(buf);
 	}
 	return ret;
 }

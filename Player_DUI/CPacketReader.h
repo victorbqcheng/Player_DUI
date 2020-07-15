@@ -9,6 +9,7 @@ using PacketQueue = CQueue<std::shared_ptr<AVPacket>>;
 class CPacketReader
 {
 public:
+	static char const* FLUSH;
 	CPacketReader();
 	~CPacketReader();
 
@@ -28,9 +29,11 @@ public:
 	int video_packets_num();
 	//队列中音频packet的数量
 	int audio_packets_num();
-
+	
 	std::shared_ptr<AVPacket> get_video_packet();
 	std::shared_ptr<AVPacket> get_audio_packet();
+
+	void flush();
 private:
 	void clear_data();
 	int read_thread();

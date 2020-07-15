@@ -16,12 +16,18 @@ public:
 	int start_decode();
 	void stop_decode();
 
+	//清空缓存区,以快进/快退
+	void flush();
+	
 	std::shared_ptr<AVFrame> get_frame();
 	std::tuple<char*, int, int64_t> get_pcm();		//pcm音频可以直接播放
 	std::tuple<char*, int> get_pcm(std::shared_ptr<AVFrame> p_frame);		//pcm音频可以直接播放
 	int get_stream_index();
 	int get_freq();
 	int get_channels();
+
+	int64_t pts_to_milsecond(int64_t pts);
+	int64_t milsecond_to_pts(int64_t milsecond);
 private:
 	void clear_data();
 	bool is_no_packet_to_decode();

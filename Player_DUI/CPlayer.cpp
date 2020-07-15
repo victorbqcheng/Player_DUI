@@ -2,6 +2,8 @@
 #include "CPlayer.h"
 #include "util.h"
 
+std::mutex mutex_for_fmt_ctx;
+
 #define SAFE_CONTINEU(ret)\
 	if (ret != 0)\
 	{\
@@ -153,6 +155,57 @@ void CPlayer::set_speed(double sp)
 	m_play_by_sdl.set_play_speed(play_speed);
 }
 
+void CPlayer::forward(int milseconds)
+{
+	int64_t new_play_time = play_time + int64_t(milseconds);
+	int64_t duration = get_duration();
+	if (new_play_time > duration)
+	{
+		new_play_time = duration - 1;
+	}
+
+	std::lock_guard<std::mutex> lock(mutex_for_fmt_ctx);
+	if (m_video_decoder.get_stream_index() >= 0)
+	{
+		int64_t pts_video = m_video_decoder.milsecond_to_pts(new_play_time);		
+		int n1 = av_seek_frame(p_fmt_context, m_video_decoder.get_stream_index(), pts_video, AVSEEK_FLAG_BACKWARD);
+	}
+	if (m_audio_decoder.get_stream_index() >= 0)
+	{
+		int64_t pts_audio = m_audio_decoder.milsecond_to_pts(new_play_time);
+		//int n2 = av_seek_frame(p_fmt_context, m_audio_decoder.get_stream_index(), pts_audio, 0);
+	}
+	
+	m_packet_reader.flush();
+	m_video_decoder.flush();
+	m_audio_decoder.flush();
+}
+
+void CPlayer::backward(int milseconds)
+{
+	int64_t new_play_time = play_time - int64_t(milseconds);
+	if (new_play_time <= 0)
+	{
+		new_play_time = 0;
+	}
+
+	std::lock_guard<std::mutex> lock(mutex_for_fmt_ctx);
+	if (m_video_decoder.get_stream_index() >= 0)
+	{
+		int64_t pts_video = m_video_decoder.milsecond_to_pts(new_play_time);
+		int n1 = av_seek_frame(p_fmt_context, m_video_decoder.get_stream_index(), pts_video, AVSEEK_FLAG_BACKWARD);
+	}
+	if (m_audio_decoder.get_stream_index() >= 0)
+	{
+		int64_t pts_audio = m_audio_decoder.milsecond_to_pts(new_play_time);
+		//int n2 = av_seek_frame(p_fmt_context, m_audio_decoder.get_stream_index(), pts_audio, AVSEEK_FLAG_BACKWARD);
+	}
+	m_packet_reader.flush();
+	m_video_decoder.flush();
+	m_audio_decoder.flush();
+	m_bBackward = true;
+}
+
 int CPlayer::get_width()
 {
 	return m_video_decoder.get_width();
@@ -198,6 +251,8 @@ void CPlayer::init_data()
 	int audio_buf_index = 0;
 	int audio_buf_size = 0;
 	char* audio_buf = NULL;
+
+	m_bBackward = false;
 }
 
 void CPlayer::update_play_time(int64_t t)
@@ -207,12 +262,6 @@ void CPlayer::update_play_time(int64_t t)
 
 int CPlayer::play_video_thread()
 {
-	util::thread_sleep(10);	//wait to guarantee there is data
-
-	int stream_video_index = m_video_decoder.get_stream_index();
-	int num = p_fmt_context->streams[stream_video_index]->time_base.num;
-	int den = p_fmt_context->streams[stream_video_index]->time_base.den;
-
 	std::shared_ptr<AVFrame> p_frame;
 	while (true)
 	{
@@ -227,17 +276,22 @@ int CPlayer::play_video_thread()
 		}
 		if (p_frame)
 		{
-			long long mil_sec = (long long)(p_frame->pts * 1.0 * num / den * 1000);
+			int64_t mil_sec_video = m_video_decoder.pts_to_milsecond(p_frame->pts);
 			auto current_time_point = std::chrono::system_clock::now();
-
 			auto d_time = std::chrono::duration_cast<std::chrono::milliseconds>(current_time_point - start_time_point);
 
-			//if (mil_sec <= d_time.count())
-			if (p_frame->pts <= audio_pts)
+			if (m_bBackward == true)
+			{
+				m_bBackward = false;
+				p_frame.reset();
+				continue;
+			}
+
+			if (mil_sec_video <= play_time)
 			{
 				ps_state = PS_PLAYING;
 				//记录播放时长
-				playing_length = mil_sec;
+				//playing_length = mil_sec_video;
 				std::shared_ptr<AVFrame> p = m_video_decoder.convert_frame_to_given(p_frame);
 				
 				if (render_callback)
@@ -254,18 +308,17 @@ int CPlayer::play_video_thread()
 		else
 		{
 			p_frame = m_video_decoder.get_frame();
+			if (!p_frame)
+			{
+				util::thread_sleep(10);	//wait to guarantee there is data
+			}
 		}
 	}
 	return 0;
 }
 
-
 void CPlayer::audio_callback(Uint8 *stream, int len)
 {
-	int stream_audio_index = m_audio_decoder.get_stream_index();
-	int num = p_fmt_context->streams[stream_audio_index]->time_base.num;
-	int den = p_fmt_context->streams[stream_audio_index]->time_base.den;
-
 	int len1;
 	memset(stream, 0, len);
 	while (len > 0)
@@ -280,7 +333,7 @@ void CPlayer::audio_callback(Uint8 *stream, int len)
 			}
 			audio_buf_index = 0;
 			audio_pts = pts;
-			int64_t pt = (int64_t)(double(pts) * num / den * 1000);
+			int64_t pt = m_audio_decoder.pts_to_milsecond(pts);
 			update_play_time(pt);
 		}
 

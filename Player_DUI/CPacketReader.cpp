@@ -2,6 +2,8 @@
 #include "CPacketReader.h"
 #include "util.h"
 
+char const* CPacketReader::FLUSH = "CODEC_FLUSH";	//解码器清空标志,快进/快退时使用
+
 CPacketReader::CPacketReader()
 {
 
@@ -89,6 +91,19 @@ std::shared_ptr<AVPacket> CPacketReader::get_audio_packet()
 		return p;
 	}
 }
+
+void CPacketReader::flush()
+{
+	clear_data();
+	AVPacket* p_packet = (AVPacket*)malloc(sizeof(AVPacket));
+	av_init_packet(p_packet);
+	p_packet->data = (uint8_t *)FLUSH;
+	std::shared_ptr<AVPacket> p(p_packet, &util::av_packet_releaser);
+
+	queue_audio_packets.push(p);
+	queue_video_packets.push(p);
+}
+
 int CPacketReader::audio_packets_num()
 {
 	return queue_audio_packets.size();
@@ -119,23 +134,27 @@ int CPacketReader::read_thread()
 		{
 			break;
 		}	
-		if ( queue_video_packets.size()>2000)	//最多缓存2000个packet
+		if ( queue_video_packets.size()>200)	//最多缓存2000个packet
 		{
 			util::thread_sleep(10);
 			continue;
 		}
-		if (queue_audio_packets.size() > 2000)
+		if (queue_audio_packets.size() > 200)
 		{
 			util::thread_sleep(10);
 			continue;
 		}
 		AVPacket* p_packet = (AVPacket*)malloc(sizeof(AVPacket));
-		if (av_read_frame(p_fmt_ctx, p_packet) != 0)
 		{
-			b_eof = true;	//文件已读完
-			b_stop = true;	
-			free(p_packet);
-			break;
+			extern std::mutex mutex_for_fmt_ctx;
+			std::lock_guard<std::mutex> lock(mutex_for_fmt_ctx);
+			if (av_read_frame(p_fmt_ctx, p_packet) != 0)
+			{
+				b_eof = true;	//文件已读完
+				b_stop = true;
+				free(p_packet);
+				break;
+			}
 		}
 		std::shared_ptr<AVPacket> p(p_packet, &util::av_packet_releaser);
 		if (p_packet->stream_index == video_stream_index)
@@ -148,13 +167,6 @@ int CPacketReader::read_thread()
 			//queue_audio_packets.push(p_packet);
 			queue_audio_packets.push(p);
 		}
-// 		char buf[128] = {0};
-// 		sprintf(buf, "queue_video_packets size:%d\r\n", queue_video_packets.size());
-// 		util::log(buf);
-// 
-// 		memset(buf, sizeof(buf), 0);
-// 		sprintf(buf, "queue_audio_packets size:%d\r\n", queue_audio_packets.size());
-// 		util::log(buf);
 	}
 	return 0;
 }

@@ -39,14 +39,17 @@ public:
 
 	void set_speed(double sp);
 
+	void forward(int milseconds);
+	void backward(int milseconds);
+
 	int get_width();
 	int get_height();
 	int64_t get_duration();		//时长, 单位:微秒
 	int64_t get_play_time();	//
 	void set_render_callback(std::function<void(char* data, int width, int height)> cb);
 private:
+	
 	void init_data();
-
 	void update_play_time(int64_t t);	//播放时长
 	int play_video_thread();
 	void audio_callback(Uint8 *stream, int len);
@@ -74,5 +77,7 @@ private:
 	int audio_buf_size = 0;		//音频缓冲区大小
 	char* audio_buf = NULL;		//音频数据缓冲区起始地址
 	RENDER_CALLBACK render_callback;
+
+	bool m_bBackward = false;
 };
 

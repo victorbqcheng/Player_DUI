@@ -28,7 +28,7 @@ CDUIProgress::~CDUIProgress()
 void CDUIProgress::setPercentage(double percentage)
 {
 	m_percentage = percentage;
-	int len = this->getWidth() * percentage + 1;
+	int len = int(this->getWidth() * percentage + 1);
 	m_pDivCurrentProgress->setWidth(len);
 
 	int dist = this->getWidth() - m_pDivHandle->getWidth();

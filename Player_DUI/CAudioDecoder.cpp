@@ -96,6 +96,11 @@ void CAudioDecoder::stop_decode()
 	clear_data();
 }
 
+void CAudioDecoder::flush()
+{
+	clear_data();
+}
+
 std::shared_ptr<AVFrame> CAudioDecoder::get_frame()
 {
 	if (queue_audio_frames.size() > 0)
@@ -182,6 +187,20 @@ int CAudioDecoder::get_channels()
 	return 0;
 }
 
+int64_t CAudioDecoder::pts_to_milsecond(int64_t pts)
+{
+	double d = av_q2d(p_audio_stream->time_base);
+	int64_t milsecond = int64_t(pts *1.0 * d * 1000);
+	return milsecond;
+}
+
+int64_t CAudioDecoder::milsecond_to_pts(int64_t milsecond)
+{
+	double d = av_q2d(p_audio_stream->time_base);
+	int64_t pts = int64_t(milsecond / 1000.0 /d );
+	return pts;
+}
+
 void CAudioDecoder::clear_data()
 {
 	for (; queue_audio_frames.size() > 0;)
@@ -246,6 +265,11 @@ int CAudioDecoder::decode_audio_thread()
 		}
 		//AudioPacketsInQueue() > 0
 		std::shared_ptr<AVPacket> p_packet = p_packet_reader->get_audio_packet();
+		if ((char*)p_packet->data == CPacketReader::FLUSH)
+		{
+			avcodec_flush_buffers(p_codec_ctx_audio);
+			continue;
+		}
 		ret = avcodec_send_packet(p_codec_ctx_audio, p_packet.get());
 		if (ret != 0)
 		{

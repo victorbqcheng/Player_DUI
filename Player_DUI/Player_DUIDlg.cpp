@@ -430,7 +430,7 @@ void CPlayerDUIDlg::showPlayTime(int64_t play_time, int64_t duration)
 		seconds s_pt = duration_cast<seconds>(mill_pt) - h_pt - m_pt;
 
 		char buf[32]{ 0 };
-		sprintf(buf, "%d:%d:%lld / %d:%d:%lld", h_pt.count(), m_pt.count(), s_pt.count(),
+		sprintf(buf, "%02d:%02d:%02lld / %02d:%02d:%02lld", h_pt.count(), m_pt.count(), s_pt.count(),
 										  h_dr.count(), m_dr.count(), s_dr.count());
 		pDivTime->setText(buf);
 
@@ -511,7 +511,7 @@ BOOL CPlayerDUIDlg::OnInitDialog()
 
 	// TODO: 在此添加额外的初始化代码
 	pDlg = this;
-	SetTimer(555, 10, NULL);
+	//SetTimer(555, 20, NULL);
 	createDUIElement();
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
@@ -588,8 +588,6 @@ LRESULT CPlayerDUIDlg::WindowProc(UINT message, WPARAM wParam, LPARAM lParam)
 void CPlayerDUIDlg::OnTimer(UINT_PTR nIDEvent)
 {
 	// TODO: 在此添加消息处理程序代码和/或调用默认值
-	RECT rc{0, 0, 1, 1};
-	InvalidateRect(&rc, FALSE);
 	if (m_bPlaying)
 	{
 		showPlayTime(m_player.get_play_time(), m_player.get_duration());
@@ -726,6 +724,14 @@ BOOL CPlayerDUIDlg::PreTranslateMessage(MSG* pMsg)
 				m_nVolume = VOLUME_MIN;
 			}
 			updateVolume();
+		}
+		else if (key == VK_RIGHT)
+		{
+			m_player.forward(20000);
+		}
+		else if (key == VK_LEFT)
+		{
+			m_player.backward(10000);
 		}
 
 	}

@@ -16,10 +16,15 @@ public:
 	int get_width();
 	int get_height();
 
+	void flush();
+
 	bool is_no_frame_to_render();
 	std::shared_ptr<AVFrame> get_frame();
 	std::shared_ptr<AVFrame> convert_frame_to_given(std::shared_ptr<AVFrame> p_frm_raw);		//返回可以直接播放的数据p_frm_given
 	int get_stream_index();
+
+	int64_t pts_to_milsecond(int64_t pts);
+	int64_t milsecond_to_pts(int64_t milsecond);
 private:
 	void clear_data();
 	bool is_no_packet_to_decode();
