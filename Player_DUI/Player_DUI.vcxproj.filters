@@ -72,6 +72,9 @@
     <ClInclude Include="CPlayAudioBySDL2.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="CDUIProgress.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Player_DUI.cpp">
@@ -120,6 +123,9 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="CPlayAudioBySDL2.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CDUIProgress.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

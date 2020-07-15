@@ -191,6 +191,7 @@
   <ItemGroup>
     <ClInclude Include="CAudioDecoder.h" />
     <ClInclude Include="CDUIButton.h" />
+    <ClInclude Include="CDUIProgress.h" />
     <ClInclude Include="CPacketReader.h" />
     <ClInclude Include="CPlayAudioBySDL.h" />
     <ClInclude Include="CPlayAudioBySDL2.h" />
@@ -212,6 +213,7 @@
   <ItemGroup>
     <ClCompile Include="CAudioDecoder.cpp" />
     <ClCompile Include="CDUIButton.cpp" />
+    <ClCompile Include="CDUIProgress.cpp" />
     <ClCompile Include="CPacketReader.cpp" />
     <ClCompile Include="CPlayAudioBySDL.cpp" />
     <ClCompile Include="CPlayAudioBySDL2.cpp" />

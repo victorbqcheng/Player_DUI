@@ -55,7 +55,7 @@ public:
 public:
 	CDiv(std::string strID);
 public:
-	~CDiv(void);
+	virtual ~CDiv(void);
 	std::string const& getID();
 	CUIMgr* getUIMgr();
 
@@ -66,7 +66,7 @@ public:
 	void setWidth(int nWidth);
 	int getWidth();
 	
-	void setHeight(int nHeight);
+	virtual void setHeight(int nHeight);
 	int getHeight();
 	
 	void setVisible(bool bVisible);

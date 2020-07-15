@@ -9,6 +9,7 @@
 #include "afxdialogex.h"
 #include "Div.h"
 #include "CDUIButton.h"
+#include "CDUIProgress.h"
 #include <functional>
 #include <algorithm>
 
@@ -285,27 +286,16 @@ void CPlayerDUIDlg::createDUIElement()
 		pDivDrag->setDraggable(true);
 		pDivBkGround->addChild(pDivDrag);
 	}
-	
-	CDiv* pProgressBar = new CDiv(ID_PROGRESS_BAR);
+
+	CDUIProgress* pProgressBar = new CDUIProgress(ID_PROGRESS_BAR);
 	{
-		int const PROGRESS_BAR_HEIGHT = 5;
-		//pProgressBar->setVisible(false);
 		pProgressBar->setWidth(rc.right - rc.left);
 		pProgressBar->setHeight(5);
 		pProgressBar->setPosition(0, rc.bottom - BTN_HEIGHT - 10);
 		pProgressBar->setTransparent(true);
 		pProgressBar->setBackgroundColor(RGB(100, 100, 100));
+		pProgressBar->setHandleLen(15);
 		pDivBkGround->addChild(pProgressBar);
-
-		CDiv* pDivHandle = new CDiv(ID_PROGRESS_HANDLE);
-		{
-			int const HANDLE_LEN = 15;
-			pDivHandle->setWidth(HANDLE_LEN);
-			pDivHandle->setHeight(HANDLE_LEN);
-			pDivHandle->setPosition(0, -(HANDLE_LEN-PROGRESS_BAR_HEIGHT)/2);
-			pDivHandle->setBackgroundColor(RGB(255, 0, 0));
-			pProgressBar->addChild(pDivHandle);
-		}
 	}
 
 	CDiv* pPlayBar = new CDiv(ID_PLAY_BAR);
@@ -445,13 +435,9 @@ void CPlayerDUIDlg::showPlayTime(int64_t play_time, int64_t duration)
 		pDivTime->setText(buf);
 
 		//更新进度条
-		double percentage = double(play_time) / double(duration);
-		CDiv* pProgressBar = uiMgr.getElementByID(ID_PROGRESS_BAR);
-		CDiv* pProgressHandle = uiMgr.getElementByID(ID_PROGRESS_HANDLE);
-		int len = pProgressBar->getWidth() - pProgressHandle->getWidth();
-		int left = len * percentage;
-		POINT pt = pProgressHandle->getPosition();
-		pProgressHandle->setPosition(left, pt.y);
+ 		double percentage = double(play_time) / double(duration);
+ 		CDUIProgress* pProgressBar = (CDUIProgress*)uiMgr.getElementByID(ID_PROGRESS_BAR);
+		pProgressBar->setPercentage(percentage);		
 	}
 }
 

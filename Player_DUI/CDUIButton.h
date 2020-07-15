@@ -5,7 +5,7 @@ class CDUIButton : public CDiv
 {
 public:
 	CDUIButton(std::string id);
-	~CDUIButton()
+	virtual ~CDUIButton()
 	{
 	}
 	void setButtonWidth(int nWidth);

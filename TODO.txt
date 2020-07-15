@@ -4,15 +4,13 @@
 2. 音量滑块
 3. 打开文件夹，文件列表
 4. 字幕
-5
-
+5. 
 
 ffmpeg
 1. 字幕
 2. ffmpeg filter的使用:比如增大音量
 3. 快进快退
 4
-
 
 ui框架
 1. 解析XML文件	msxml-->libxml
@@ -22,4 +20,8 @@ ui框架
 5. state support:      hover, focus ...
 6. animation
 7. 容器元素改为shared_ptr<>
+
+bugs:
+1. 切换文件时有噪声
+
 
