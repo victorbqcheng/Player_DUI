@@ -30,7 +30,8 @@ std::string ID_BTN_STOP = "btn_stop";
 std::string ID_BTN_SPEED = "btn_speed";
 std::string ID_DIV_TIME = "time";
 std::string ID_PLAY_BAR = "play_bar";
-
+std::string ID_PROGRESS_BAR = "progress_bar";
+std::string ID_PROGRESS_HANDLE = "progress_handle";
 
 std::string ID_SPEED_MENU_CONTAINER = "speed_menu";
 std::string ID_SPEED_MENU_ITEM_1_5X = "speed_1.5X";
@@ -285,6 +286,28 @@ void CPlayerDUIDlg::createDUIElement()
 		pDivBkGround->addChild(pDivDrag);
 	}
 	
+	CDiv* pProgressBar = new CDiv(ID_PROGRESS_BAR);
+	{
+		int const PROGRESS_BAR_HEIGHT = 5;
+		//pProgressBar->setVisible(false);
+		pProgressBar->setWidth(rc.right - rc.left);
+		pProgressBar->setHeight(5);
+		pProgressBar->setPosition(0, rc.bottom - BTN_HEIGHT - 10);
+		pProgressBar->setTransparent(true);
+		pProgressBar->setBackgroundColor(RGB(100, 100, 100));
+		pDivBkGround->addChild(pProgressBar);
+
+		CDiv* pDivHandle = new CDiv(ID_PROGRESS_HANDLE);
+		{
+			int const HANDLE_LEN = 15;
+			pDivHandle->setWidth(HANDLE_LEN);
+			pDivHandle->setHeight(HANDLE_LEN);
+			pDivHandle->setPosition(0, -(HANDLE_LEN-PROGRESS_BAR_HEIGHT)/2);
+			pDivHandle->setBackgroundColor(RGB(255, 0, 0));
+			pProgressBar->addChild(pDivHandle);
+		}
+	}
+
 	CDiv* pPlayBar = new CDiv(ID_PLAY_BAR);
 	{
 		pPlayBar->setVisible(false);
@@ -420,6 +443,15 @@ void CPlayerDUIDlg::showPlayTime(int64_t play_time, int64_t duration)
 		sprintf(buf, "%d:%d:%lld / %d:%d:%lld", h_pt.count(), m_pt.count(), s_pt.count(),
 										  h_dr.count(), m_dr.count(), s_dr.count());
 		pDivTime->setText(buf);
+
+		//更新进度条
+		double percentage = double(play_time) / double(duration);
+		CDiv* pProgressBar = uiMgr.getElementByID(ID_PROGRESS_BAR);
+		CDiv* pProgressHandle = uiMgr.getElementByID(ID_PROGRESS_HANDLE);
+		int len = pProgressBar->getWidth() - pProgressHandle->getWidth();
+		int left = len * percentage;
+		POINT pt = pProgressHandle->getPosition();
+		pProgressHandle->setPosition(left, pt.y);
 	}
 }
 
@@ -598,6 +630,12 @@ void CPlayerDUIDlg::OnSize(UINT nType, int cx, int cy)
 		pDivDrag->setWidth(cx);
 		pDivDrag->setHeight(cy);
 	}
+	CDiv* pProgressBar = uiMgr.getElementByID(ID_PROGRESS_BAR);
+	if(pProgressBar != NULL)
+	{ 
+		pProgressBar->setWidth(cx);
+		pProgressBar->setPosition(0, cy - BTN_HEIGHT - 10);
+	}
 	CDiv* pPlayBar = uiMgr.getElementByID(ID_PLAY_BAR);
 	if (pPlayBar != NULL)
 	{
@@ -608,6 +646,7 @@ void CPlayerDUIDlg::OnSize(UINT nType, int cx, int cy)
 	{
 		pDivTime->setPosition(pPlayBar->getWidth() - pDivTime->getWidth() - 5, 0);
 	}
+	
 }
 
 

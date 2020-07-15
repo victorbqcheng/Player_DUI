@@ -38,7 +38,7 @@ int CVideoDecoder::open(AVStream* p_stream, int index, CPacketReader* p_packet_r
 	{
 		p_codec_video = avcodec_find_decoder(p_codecpar_video->codec_id);
 	}
-	p_codec_ctx_video = avcodec_alloc_context3(p_codec_video);
+	p_codec_ctx_video = avcodec_alloc_context3(NULL);
 	if (p_codec_ctx_video == NULL)
 	{
 		return ret;

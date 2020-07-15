@@ -87,6 +87,8 @@ public:
 
 	HRGN getRgn();
 
+	void setShowFrame(bool bShowFrame);
+
 	void setDraggable(bool b);
 	bool isDraggable();
 	
@@ -175,6 +177,10 @@ protected:
 	bool m_bMouseMove;
 	//子元素
 	std::map<int, std::deque<CDiv*> > m_children;	//z-index -- children
+	//
+	bool m_bShowFrame = true;		//是否显示区域边框
+	HBRUSH m_hBrForRgn = NULL;
+	HRGN m_hRgnClipOld = NULL;
 
 	CDiv* m_pDivParent;
 	//callback functions
@@ -188,7 +194,4 @@ protected:
 	MOUSEMOVE_CALLBACK_WRAPPER m_mmcbWrapper;
 	MOUSELEAVE m_ml = NULL;
 	MOUSELEAVE_CALLBACK_WRAPPER m_mlcbWrapper;
-
-	HBRUSH m_hBrForRgn = NULL;
-	HRGN m_hRgnClipOld = NULL;
 };

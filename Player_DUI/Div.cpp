@@ -6,6 +6,7 @@ Author: victor cheng
 #include "UIMgr.h"
 #include "util.h"
 
+
 CDiv::CDiv(std::string strID)
 {
 	m_strID = strID;
@@ -221,6 +222,11 @@ void CDiv::setBackgroundImage(char* data, int width, int height)
 HRGN CDiv::getRgn()
 {
 	return m_rgn;
+}
+
+void CDiv::setShowFrame(bool bShowFrame)
+{
+	m_bShowFrame = bShowFrame;
 }
 
 void CDiv::setDraggable(bool b)
@@ -619,8 +625,10 @@ void CDiv::onPaint(HDC hDC)
 			(*it2)->onPaint(hDC);
 		}
 	}
-
-	::FrameRgn(hDC, m_rgn, m_hBrForRgn, 2, 2);
+	if (m_bShowFrame)
+	{
+		::FrameRgn(hDC, m_rgn, m_hBrForRgn, 1, 1);
+	}
 
 	//if(m_pDivParent!=NULL && m_pDivParent->isClip())
 	if (this->isClip())
