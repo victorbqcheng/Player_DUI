@@ -45,6 +45,26 @@ void CPacketReader::stop_read()
 	}
 	clear_data();
 }
+void CPacketReader::seek(int64_t milseconds)
+{
+	//std::lock_guard<std::mutex> lock(mutex_for_fmt_ctx);
+	extern std::mutex mutex_for_seek;
+	std::lock_guard<std::mutex> lock(mutex_for_seek);
+	if (video_stream_index >= 0)
+	{
+		double d = av_q2d(p_fmt_ctx->streams[video_stream_index] ->time_base);
+		int64_t pts_video = int64_t(milseconds / 1000.0 / d);
+		int n1 = av_seek_frame(p_fmt_ctx, video_stream_index, pts_video, 0);
+	}
+	else if (audio_stream_index >= 0)
+	{
+		double d = av_q2d(p_fmt_ctx->streams[audio_stream_index]->time_base);
+		int64_t pts_audio = int64_t(milseconds / 1000.0 / d);
+		int n1 = av_seek_frame(p_fmt_ctx, audio_stream_index, pts_audio, 0);
+	}
+	flush();
+}
+
 bool CPacketReader::is_eof()
 {
 	return b_eof;
@@ -52,12 +72,10 @@ bool CPacketReader::is_eof()
 CQueue<AVPacket*>& CPacketReader::get_video_queue()
 {
 	throw "deprecated";
-	//return queue_video_packets;
 }
 CQueue<AVPacket*>& CPacketReader::get_audio_queue()
 {
 	throw "deprecated";
-	//return queue_audio_packets;
 }
 int CPacketReader::video_packets_num()
 {
@@ -130,35 +148,35 @@ int CPacketReader::read_thread()
 {
 	while (true)
 	{
+		
 		if (b_stop == true)
 		{
 			break;
 		}
 		
-		if ( queue_video_packets.size()>5)	//最多缓存2000个packet
+		if ( queue_video_packets.size()>50)	//最多缓存2000个packet
 		{
 			util::thread_sleep(10);
 			continue;
 		}
 		
-		if (queue_audio_packets.size() > 20)
+		if (queue_audio_packets.size() > 200)
 		{
 			util::thread_sleep(10);
 			continue;
 		}
 		AVPacket* p_packet = (AVPacket*)malloc(sizeof(AVPacket));
+		std::shared_ptr<AVPacket> p(p_packet, &util::av_packet_releaser);
+		extern std::mutex mutex_for_seek;
+		std::lock_guard<std::mutex> lock(mutex_for_seek);
 		{
-			extern std::mutex mutex_for_fmt_ctx;
-			std::lock_guard<std::mutex> lock(mutex_for_fmt_ctx);
 			if (av_read_frame(p_fmt_ctx, p_packet) != 0)
 			{
 				b_eof = true;	//文件已读完
 				b_stop = true;
-				free(p_packet);
 				break;
 			}
 		}
-		std::shared_ptr<AVPacket> p(p_packet, &util::av_packet_releaser);
 		if (p_packet->stream_index == video_stream_index)
 		{
 			queue_video_packets.push(p);

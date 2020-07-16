@@ -132,7 +132,6 @@ std::tuple<char*, int, int64_t> CAudioDecoder::get_pcm()
 		int ret_samples = swr_convert(au_convert_ctx, (uint8_t**)&pcm_out_buffer, pcm_out_buffer_size,
 			(const uint8_t**)frame->data, frame->nb_samples);
 
-
 		int ret_buffer_size = av_samples_get_buffer_size(NULL,
 			p_codec_ctx_audio->channels,
 			ret_samples,
@@ -145,7 +144,6 @@ std::tuple<char*, int, int64_t> CAudioDecoder::get_pcm()
 	{
 		return std::make_tuple((char*)NULL, 0, 0);
 	}
-	
 }
 
 std::tuple<char*, int> CAudioDecoder::get_pcm(std::shared_ptr<AVFrame> p_frame)
@@ -238,9 +236,6 @@ int CAudioDecoder::set_swr_opts(std::shared_ptr<AVFrame> frame)
 		0,
 		NULL);
 	swr_init(au_convert_ctx);
-
-	
-
 	return 0;
 }
 
@@ -249,6 +244,7 @@ int CAudioDecoder::decode_audio_thread()
 	int ret = 0;
 	while (true)
 	{
+		
 		if (b_stop == true || is_no_packet_to_decode())
 		{
 			break;
@@ -263,7 +259,8 @@ int CAudioDecoder::decode_audio_thread()
 			util::thread_sleep(10);
 			continue;
 		}
-		//AudioPacketsInQueue() > 0
+		extern std::mutex mutex_for_seek;
+		std::lock_guard<std::mutex> lock(mutex_for_seek);
 		std::shared_ptr<AVPacket> p_packet = p_packet_reader->get_audio_packet();
 		if ((char*)p_packet->data == CPacketReader::FLUSH)
 		{
@@ -273,6 +270,10 @@ int CAudioDecoder::decode_audio_thread()
 		ret = avcodec_send_packet(p_codec_ctx_audio, p_packet.get());
 		if (ret != 0)
 		{
+			if (ret == AVERROR_INVALIDDATA)
+			{
+				continue;
+			}
 			break;
 		}
 		do 

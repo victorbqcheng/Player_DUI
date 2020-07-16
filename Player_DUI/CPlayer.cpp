@@ -2,7 +2,7 @@
 #include "CPlayer.h"
 #include "util.h"
 
-std::mutex mutex_for_fmt_ctx;
+std::mutex mutex_for_seek;
 
 #define SAFE_CONTINEU(ret)\
 	if (ret != 0)\
@@ -45,7 +45,6 @@ int CPlayer::open(std::string fileName)
 	}
 
 	m_packet_reader.open(p_fmt_context, v_index, a_index);
-
 	if (v_index != -1)
 	{		
 		m_video_decoder.open(p_fmt_context->streams[v_index], v_index, &m_packet_reader);
@@ -164,21 +163,9 @@ void CPlayer::forward(int milseconds)
 		new_play_time = duration - 1;
 	}
 
-	std::lock_guard<std::mutex> lock(mutex_for_fmt_ctx);
-	if (m_video_decoder.get_stream_index() >= 0)
-	{
-		int64_t pts_video = m_video_decoder.milsecond_to_pts(new_play_time);		
-		int n1 = av_seek_frame(p_fmt_context, m_video_decoder.get_stream_index(), pts_video, AVSEEK_FLAG_BACKWARD);
-	}
-	if (m_audio_decoder.get_stream_index() >= 0)
-	{
-		int64_t pts_audio = m_audio_decoder.milsecond_to_pts(new_play_time);
-		//int n2 = av_seek_frame(p_fmt_context, m_audio_decoder.get_stream_index(), pts_audio, 0);
-	}
-	
-	m_packet_reader.flush();
 	m_video_decoder.flush();
 	m_audio_decoder.flush();
+	m_packet_reader.seek(new_play_time);
 }
 
 void CPlayer::backward(int milseconds)
@@ -189,20 +176,9 @@ void CPlayer::backward(int milseconds)
 		new_play_time = 0;
 	}
 
-	std::lock_guard<std::mutex> lock(mutex_for_fmt_ctx);
-	if (m_video_decoder.get_stream_index() >= 0)
-	{
-		int64_t pts_video = m_video_decoder.milsecond_to_pts(new_play_time);
-		int n1 = av_seek_frame(p_fmt_context, m_video_decoder.get_stream_index(), pts_video, AVSEEK_FLAG_BACKWARD);
-	}
-	if (m_audio_decoder.get_stream_index() >= 0)
-	{
-		int64_t pts_audio = m_audio_decoder.milsecond_to_pts(new_play_time);
-		//int n2 = av_seek_frame(p_fmt_context, m_audio_decoder.get_stream_index(), pts_audio, AVSEEK_FLAG_BACKWARD);
-	}
-	m_packet_reader.flush();
 	m_video_decoder.flush();
 	m_audio_decoder.flush();
+	m_packet_reader.seek(new_play_time);
 	m_bBackward = true;
 }
 

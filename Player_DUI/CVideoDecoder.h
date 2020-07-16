@@ -30,14 +30,18 @@ private:
 	bool is_no_packet_to_decode();
 	int decode_video_thread();
 private:
+	std::mutex mutex_for_codec_ctx;
 	AVCodecContext* p_codec_ctx_video = NULL;
 	AVStream* p_video_stream = NULL;	//视频流
 	int stream_index = -1;	//视频流索引
 	CPacketReader* p_packet_reader = NULL;
+	bool b_stop = false;
+
 	SwsContext* sws_ctx = NULL;
+
 	std::shared_ptr<AVFrame> p_frm_given = NULL;		//可以直接播放的RGB数据
 	uint8_t* buffer_rgb = NULL;
-	bool b_stop = false;
+	
 	std::thread* t_decode_video = NULL;
 	CQueue<std::shared_ptr<AVFrame>> queue_video_frames;
 };

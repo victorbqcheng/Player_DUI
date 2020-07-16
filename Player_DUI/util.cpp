@@ -31,6 +31,7 @@ void util::av_packet_releaser(AVPacket* p_packet)
 
 	av_packet_unref(p_packet);
 	free(p_packet);
+	p_packet = NULL;
 }
 
 void util::av_frame_releaser(AVFrame* p_frm)

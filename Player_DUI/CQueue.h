@@ -28,8 +28,11 @@ public:
 	int pop(T& ele)
 	{
 		std::lock_guard<std::mutex> lock(m);
-		ele = que.front();
-		que.pop();
+		if (que.size() > 0)
+		{
+			ele = que.front();
+			que.pop();
+		}
 		return 0;
 	}
 	int size()

@@ -20,6 +20,8 @@ public:
 	//void pause_read();
 	void stop_read();
 
+	void seek(int64_t milseconds);
+
 	bool is_eof();
 
 	CQueue<AVPacket*>& get_video_queue();
@@ -32,14 +34,14 @@ public:
 	
 	std::shared_ptr<AVPacket> get_video_packet();
 	std::shared_ptr<AVPacket> get_audio_packet();
-
-	void flush();
 private:
+	void flush();
 	void clear_data();
 	int read_thread();
 private:
 	std::thread* t_read = NULL;
 
+	std::mutex mutex_for_fmt_ctx;
 	AVFormatContext* p_fmt_ctx = NULL;
 	int video_stream_index = -1;
 	int audio_stream_index = -1;

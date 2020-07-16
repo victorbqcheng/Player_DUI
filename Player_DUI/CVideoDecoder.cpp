@@ -227,6 +227,26 @@ int64_t CVideoDecoder::milsecond_to_pts(int64_t milsecond)
 	return pts;
 }
 
+void ff()
+{
+	int n1 = AVERROR_BSF_NOT_FOUND;
+	int n2 = AVERROR_BUG;
+	int n3 = AVERROR_BUFFER_TOO_SMALL;
+	int n4 = AVERROR_DECODER_NOT_FOUND;
+	int n5 = AVERROR_DEMUXER_NOT_FOUND;
+	int n6 = AVERROR_ENCODER_NOT_FOUND;
+	int n7 = AVERROR_EOF;
+	int n8 = AVERROR_EXIT;
+	int n9 = AVERROR_EXTERNAL;
+	int n10 = AVERROR_FILTER_NOT_FOUND;
+	int n11 = AVERROR_INVALIDDATA;
+	int n12 = AVERROR_MUXER_NOT_FOUND;
+	int n13 = AVERROR_OPTION_NOT_FOUND;
+	int n14 = AVERROR_PATCHWELCOME;
+	int n15 = AVERROR_PROTOCOL_NOT_FOUND;
+	int n16 = AVERROR_STREAM_NOT_FOUND;
+}
+
 int CVideoDecoder::decode_video_thread()
 {
 	int ret = 0;
@@ -246,7 +266,8 @@ int CVideoDecoder::decode_video_thread()
 			util::thread_sleep(10);
 			continue;
 		}
-		//VideoPacketsInQueue() > 0
+		extern std::mutex mutex_for_seek;
+		std::lock_guard<std::mutex> lock(mutex_for_seek);
 		std::shared_ptr<AVPacket> p_packet = p_packet_reader->get_video_packet();
 		if ((char*)p_packet->data == CPacketReader::FLUSH)
 		{
@@ -261,7 +282,10 @@ int CVideoDecoder::decode_video_thread()
 			{
 				break;
 			}
-			break;
+			if (ret == AVERROR_INVALIDDATA)	//快进时会出现该错误,但是直接继续可以正常播放
+			{
+				continue;
+			}
 		}
 		AVFrame* p_frm = av_frame_alloc();
 		std::shared_ptr<AVFrame> p_frame(p_frm, &util::av_frame_releaser);
