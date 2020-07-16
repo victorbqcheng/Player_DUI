@@ -444,8 +444,8 @@ void CPlayerDUIDlg::showPlayTime(int64_t play_time, int64_t duration)
 void CPlayerDUIDlg::resizeWindow(int w, int h)
 {
 	//MoveWindow()
-	w = std::max(w, 500);
-	h = std::max(h, 250);
+	w = std::min(std::max(w, 500), m_nMaxWidth);
+	h = std::min(std::max(h, 250), m_nMaxHeight);
 	SetWindowPos(NULL, 0, 0, w, h, SWP_NOMOVE);
 }
 
@@ -513,6 +513,10 @@ BOOL CPlayerDUIDlg::OnInitDialog()
 	pDlg = this;
 	//SetTimer(555, 20, NULL);
 	createDUIElement();
+	RECT rect;
+	SystemParametersInfo(SPI_GETWORKAREA, 0, &rect, 0);
+	m_nMaxWidth = rect.right - rect.left;
+	m_nMaxHeight = rect.bottom - rect.top;
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
 

@@ -133,13 +133,15 @@ int CPacketReader::read_thread()
 		if (b_stop == true)
 		{
 			break;
-		}	
-		if ( queue_video_packets.size()>200)	//最多缓存2000个packet
+		}
+		
+		if ( queue_video_packets.size()>5)	//最多缓存2000个packet
 		{
 			util::thread_sleep(10);
 			continue;
 		}
-		if (queue_audio_packets.size() > 200)
+		
+		if (queue_audio_packets.size() > 20)
 		{
 			util::thread_sleep(10);
 			continue;
@@ -159,12 +161,10 @@ int CPacketReader::read_thread()
 		std::shared_ptr<AVPacket> p(p_packet, &util::av_packet_releaser);
 		if (p_packet->stream_index == video_stream_index)
 		{
-			//queue_video_packets.push(p_packet);
 			queue_video_packets.push(p);
 		}
 		else if (p_packet->stream_index == audio_stream_index)
 		{
-			//queue_audio_packets.push(p_packet);
 			queue_audio_packets.push(p);
 		}
 	}

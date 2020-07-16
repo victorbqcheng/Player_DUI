@@ -39,6 +39,9 @@ protected:
 	double play_speed = 1.0;
 	bool m_bPlaying = false;
 	std::string m_fileName = "";
+	//最大宽高(桌面宽高, 不包括任务栏)
+	int m_nMaxWidth = 0;
+	int m_nMaxHeight = 0;
 	// 生成的消息映射函数
 	virtual BOOL OnInitDialog();
 	afx_msg void OnSysCommand(UINT nID, LPARAM lParam);
