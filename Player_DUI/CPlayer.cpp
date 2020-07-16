@@ -175,7 +175,6 @@ void CPlayer::backward(int milseconds)
 	{
 		new_play_time = 0;
 	}
-
 	m_video_decoder.flush();
 	m_audio_decoder.flush();
 	m_packet_reader.seek(new_play_time);

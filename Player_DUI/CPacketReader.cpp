@@ -50,19 +50,19 @@ void CPacketReader::seek(int64_t milseconds)
 	//std::lock_guard<std::mutex> lock(mutex_for_fmt_ctx);
 	extern std::mutex mutex_for_seek;
 	std::lock_guard<std::mutex> lock(mutex_for_seek);
+	flush();
 	if (video_stream_index >= 0)
 	{
 		double d = av_q2d(p_fmt_ctx->streams[video_stream_index] ->time_base);
 		int64_t pts_video = int64_t(milseconds / 1000.0 / d);
-		int n1 = av_seek_frame(p_fmt_ctx, video_stream_index, pts_video, 0);
+		int n1 = av_seek_frame(p_fmt_ctx, video_stream_index, pts_video, AVSEEK_FLAG_ANY);
 	}
 	else if (audio_stream_index >= 0)
 	{
 		double d = av_q2d(p_fmt_ctx->streams[audio_stream_index]->time_base);
 		int64_t pts_audio = int64_t(milseconds / 1000.0 / d);
-		int n1 = av_seek_frame(p_fmt_ctx, audio_stream_index, pts_audio, 0);
+		int n1 = av_seek_frame(p_fmt_ctx, audio_stream_index, pts_audio, AVSEEK_FLAG_BACKWARD);
 	}
-	flush();
 }
 
 bool CPacketReader::is_eof()
@@ -154,17 +154,17 @@ int CPacketReader::read_thread()
 			break;
 		}
 		
-		if ( queue_video_packets.size()>50)	//最多缓存2000个packet
+		if ( queue_video_packets.size()>50 && queue_audio_packets.size()>20)	//最多缓存2000个packet
 		{
 			util::thread_sleep(10);
 			continue;
 		}
 		
-		if (queue_audio_packets.size() > 200)
-		{
-			util::thread_sleep(10);
-			continue;
-		}
+// 		if (queue_audio_packets.size() > 20)
+// 		{
+// 			util::thread_sleep(10);
+// 			continue;
+// 		}
 		AVPacket* p_packet = (AVPacket*)malloc(sizeof(AVPacket));
 		std::shared_ptr<AVPacket> p(p_packet, &util::av_packet_releaser);
 		extern std::mutex mutex_for_seek;
