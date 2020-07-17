@@ -6,6 +6,8 @@
 
 class CAudioDecoder
 {
+	//using FrameQueue = CQueue<std::shared_ptr<AVFrame>>;
+	using FrameQueue = CDeque<std::shared_ptr<AVFrame>>;
 public:
 	CAudioDecoder();
 	~CAudioDecoder();
@@ -18,6 +20,7 @@ public:
 
 	//清空缓存区,以快进/快退
 	void flush();
+	bool has_flush_flag();
 	
 	std::shared_ptr<AVFrame> get_frame();
 	std::tuple<char*, int, int64_t> get_pcm();		//pcm音频可以直接播放
@@ -47,6 +50,6 @@ private:
 	int const pcm_out_buffer_size = 1024 * 32;
 
 	std::shared_ptr<std::thread> t_decode_audio = NULL;
-	CQueue<std::shared_ptr<AVFrame>> queue_audio_frames;
+	FrameQueue queue_audio_frames;
 };
 

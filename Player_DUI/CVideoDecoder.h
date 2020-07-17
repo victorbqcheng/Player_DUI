@@ -4,6 +4,8 @@
 
 class CVideoDecoder
 {
+	//using FrameQueue = CQueue<std::shared_ptr<AVFrame>>;
+	using FrameQueue = CDeque<std::shared_ptr<AVFrame>>;
 public:
 	CVideoDecoder();
 	~CVideoDecoder();
@@ -17,6 +19,7 @@ public:
 	int get_height();
 
 	void flush();
+	bool has_flush_flag();
 
 	bool is_no_frame_to_render();
 	std::shared_ptr<AVFrame> get_frame();
@@ -43,6 +46,6 @@ private:
 	uint8_t* buffer_rgb = NULL;
 	
 	std::thread* t_decode_video = NULL;
-	CQueue<std::shared_ptr<AVFrame>> queue_video_frames;
+	FrameQueue queue_video_frames;
 };
 

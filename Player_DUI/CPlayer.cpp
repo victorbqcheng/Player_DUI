@@ -3,8 +3,6 @@
 #include "CPlayer.h"
 #include "util.h"
 
-std::mutex mutex_for_seek;
-
 #define SAFE_CONTINEU(ret)\
 	if (ret != 0)\
 	{\
@@ -172,7 +170,6 @@ void CPlayer::seek(int milseconds)
 	
 	m_audio_decoder.flush();
 	m_video_decoder.flush();
-	m_b_fresh_play_time = false;
 }
 
 int CPlayer::get_width()
@@ -219,8 +216,6 @@ void CPlayer::init_data()
 	int audio_buf_index = 0;
 	int audio_buf_size = 0;
 	char* audio_buf = NULL;
-
-	m_b_fresh_play_time = true;
 }
 
 void CPlayer::update_play_time(int64_t t)
@@ -238,48 +233,34 @@ int CPlayer::play_video_thread()
 			util::thread_sleep(2);
 			continue;
 		}
-		if (m_b_fresh_play_time == false)
-		{
-			p_frame.reset();
-			condition_done.wait();
-		}
 		if (ps_state == PS_STOPPED || m_video_decoder.is_no_frame_to_render())
 		{
 			break;
 		}
-		if (p_frame)
+		if (m_video_decoder.has_flush_flag())
 		{
-			int64_t mil_sec_video = m_video_decoder.pts_to_milsecond(p_frame->pts);
-			auto current_time_point = std::chrono::system_clock::now();
-			auto d_time = std::chrono::duration_cast<std::chrono::milliseconds>(current_time_point - start_time_point);
-
-			if (mil_sec_video <= get_play_time())
+			p_frame.reset();
+		}
+		if (!p_frame)
+		{
+			p_frame = m_video_decoder.get_frame();
+			if (p_frame && p_frame->opaque == CPacketReader::FLUSH)
 			{
-				ps_state = PS_PLAYING;
-				//记录播放时长
-				//playing_length = mil_sec_video;
-				std::shared_ptr<AVFrame> p = m_video_decoder.convert_frame_to_given(p_frame);
-				if (render_callback)
-				{
-					render_callback((char*)(p->data[0]), p_frame->width, p_frame->height);
-				}
-				p_frame.reset();
-				mil_sec_video = 0;
-			}
-			else
-			{
-				util::thread_sleep(5);
+				continue;
 			}
 		}
 		else
 		{
-			if (m_b_fresh_play_time== true)
+			int64_t mil_sec_video = m_video_decoder.pts_to_milsecond(p_frame->pts);
+			if (mil_sec_video < play_time)
 			{
-				p_frame = m_video_decoder.get_frame();
-				if (!p_frame)
+				ps_state = PS_PLAYING;
+				std::shared_ptr<AVFrame> p = m_video_decoder.convert_frame_to_given(p_frame);
+				if (render_callback && p)
 				{
-					util::thread_sleep(10);	//wait to guarantee there is data
+					render_callback((char*)(p->data[0]), p_frame->width, p_frame->height);
 				}
+				p_frame.reset();
 			}
 		}
 	}
@@ -292,21 +273,20 @@ void CPlayer::audio_callback(Uint8 *stream, int len)
 	while (len > 0)
 	{
 		if (audio_buf_index >= audio_buf_size)	//游标越过了缓冲区，说明需要获取新的PCM数据
-		{
-			int64_t pts = 0;
-			std::tie(audio_buf, audio_buf_size, pts)= m_audio_decoder.get_pcm();
+		{			
+			std::shared_ptr<AVFrame> p_frame = m_audio_decoder.get_frame();
+			if (p_frame && p_frame->opaque == CPacketReader::FLUSH)
+			{
+				continue;
+			}
+			std::tie(audio_buf, audio_buf_size) = m_audio_decoder.get_pcm(p_frame);
 			if (audio_buf == NULL)
 			{
 				break;
 			}
 			audio_buf_index = 0;
-			int64_t pt = m_audio_decoder.pts_to_milsecond(pts);
-			if (m_b_fresh_play_time == false)
-			{
-				m_b_fresh_play_time = true;
-				continue;
-			}
-			condition_done.notify_one();
+			int64_t pt = m_audio_decoder.pts_to_milsecond(p_frame->pts);
+			
 			update_play_time(pt);
 		}
 

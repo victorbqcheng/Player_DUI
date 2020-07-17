@@ -1,16 +1,19 @@
 #pragma once
 
+#include <deque>
 #include <queue>
 #include <mutex>
+#include <functional>
 
 template<typename T>
 class CQueue
 {
+	using inner_que = std::queue<T>;
 public:
 	~CQueue()
 	{
 		std::lock_guard<std::mutex> lock(m);
-		std::queue<T> empty;
+		inner_que empty;
 		que.swap(empty);
 	}
 	int push(T ele)
@@ -44,11 +47,111 @@ public:
 	void clear()
 	{
 		std::lock_guard<std::mutex> lock(m);
-		std::queue<T> empty;
+		inner_que empty;
 		que.swap(empty);
 	}
 private:
-	std::queue<T> que;
+	inner_que que;
 	std::mutex m;
 };
 
+
+template<typename T>
+class CDeque
+{
+	using inner_deque = std::deque<T>;
+public:
+	~CDeque()
+	{
+		clear();
+	}
+	int push_back(T& t)
+	{
+		std::lock_guard<std::mutex> lock(m);
+		que.push_back(t);
+		return 0;
+	}
+	bool pop_back(T& t)
+	{
+		std::lock_guard<std::mutex> lock(m);
+		if (que.size() > 0)
+		{
+			t = que.back();
+			que.pop_back();
+			return true;
+		}
+		else
+		{
+			return 0;
+		}
+	}
+	int push_front(T& t)
+	{
+		std::lock_guard<std::mutex> lock(m);
+		que.push_front(t);
+		return 0;
+	}
+	bool pop_front(T& t)
+	{
+		std::lock_guard<std::mutex> lock(m);
+		if (que.size() > 0)
+		{
+			t = que.front();
+			que.pop_front();
+			return true;
+		}
+		else
+		{
+			return 0;
+		}
+	}
+	bool front(T& t)
+	{
+		std::lock_guard<std::mutex> lock(m);
+		if (que.size() > 0)
+		{
+			t = que.front();
+			return true;
+		}
+		else
+			return false;
+	}
+	bool back(T&)
+	{
+		std::lock_guard<std::mutex> lock(m);
+		if (que.size() > 0)
+		{
+			t = que.back();
+			return true;
+		}
+		else
+			return false;
+	}
+	int size()
+	{
+		std::lock_guard<std::mutex> lock(m);
+		int _size = que.size();
+		return _size;
+	}
+	void clear()
+	{
+		std::lock_guard<std::mutex> lock(m);
+		inner_deque empty;
+		que.swap(empty);
+	}
+	bool find(T& t, std::function<bool(T const& t)> pred)
+	{
+		std::lock_guard<std::mutex> lock(m);
+		for (auto it = que.begin(); it != que.end(); it++)
+		{
+			if (pred(*it))
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+private:
+	inner_deque que;
+	std::mutex m;
+};
