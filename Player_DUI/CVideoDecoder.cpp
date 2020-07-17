@@ -229,6 +229,7 @@ int64_t CVideoDecoder::milsecond_to_pts(int64_t milsecond)
 
 void ff()
 {
+	AV_TIME_BASE;
 	int n1 = AVERROR_BSF_NOT_FOUND;
 	int n2 = AVERROR_BUG;
 	int n3 = AVERROR_BUFFER_TOO_SMALL;
@@ -249,6 +250,7 @@ void ff()
 
 int CVideoDecoder::decode_video_thread()
 {
+	ff();
 	int ret = 0;
 	while (true)
 	{
@@ -258,7 +260,7 @@ int CVideoDecoder::decode_video_thread()
 		}
 		if (queue_video_frames.size() > 10)		//最多缓存10帧
 		{
-			util::thread_sleep(5);
+			util::thread_sleep(10);
 			continue;
 		}
 		if (p_packet_reader->video_packets_num() == 0)	//解码太快，等待读取线程
@@ -268,36 +270,31 @@ int CVideoDecoder::decode_video_thread()
 		}
 		extern std::mutex mutex_for_seek;
 		std::lock_guard<std::mutex> lock(mutex_for_seek);
+
 		std::shared_ptr<AVPacket> p_packet = p_packet_reader->get_video_packet();
 		if ((char*)p_packet->data == CPacketReader::FLUSH)
 		{
 			avcodec_flush_buffers(p_codec_ctx_video);
-			util::thread_sleep(5);
+			util::thread_sleep(10);
 			continue;
 		}
+		
 		ret = avcodec_send_packet(p_codec_ctx_video, p_packet.get());
 		if (ret != 0)
 		{
-			if (ret == AVERROR_EOF)
-			{
-				break;
-			}
-			if (ret == AVERROR_INVALIDDATA)	//快进时会出现该错误,但是直接继续可以正常播放
-			{
-				continue;
-			}
+			if (ret == AVERROR_EOF) break;
+			//快进时可能会出现该错误,但是直接继续可以正常播放
+			if (ret == AVERROR_INVALIDDATA)	continue;
 		}
-		AVFrame* p_frm = av_frame_alloc();
-		std::shared_ptr<AVFrame> p_frame(p_frm, &util::av_frame_releaser);
-		ret = avcodec_receive_frame(p_codec_ctx_video, p_frm);
+		
+		std::shared_ptr<AVFrame> p_frame(av_frame_alloc(), &util::av_frame_releaser);
+		ret = avcodec_receive_frame(p_codec_ctx_video, p_frame.get());
 		if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF)
 		{
 			continue;
 		}
-		if (ret != 0)
-		{
-			break;
-		}
+		if (ret != 0) break;
+
 		queue_video_frames.push(p_frame);
 	}
 	return ret;

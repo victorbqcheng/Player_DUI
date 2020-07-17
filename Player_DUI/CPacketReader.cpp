@@ -45,24 +45,21 @@ void CPacketReader::stop_read()
 	}
 	clear_data();
 }
+
+void CPacketReader::set_seek(int64_t milseconds)
+{
+	b_seek = true;
+	seek_time = milseconds;
+}
+
 void CPacketReader::seek(int64_t milseconds)
 {
-	//std::lock_guard<std::mutex> lock(mutex_for_fmt_ctx);
+	AV_TIME_BASE;		//微秒
 	extern std::mutex mutex_for_seek;
 	std::lock_guard<std::mutex> lock(mutex_for_seek);
+	
+	int n1 = av_seek_frame(p_fmt_ctx, -1, milseconds*1000, AVSEEK_FLAG_BACKWARD);
 	flush();
-	if (video_stream_index >= 0)
-	{
-		double d = av_q2d(p_fmt_ctx->streams[video_stream_index] ->time_base);
-		int64_t pts_video = int64_t(milseconds / 1000.0 / d);
-		int n1 = av_seek_frame(p_fmt_ctx, video_stream_index, pts_video, AVSEEK_FLAG_ANY);
-	}
-	else if (audio_stream_index >= 0)
-	{
-		double d = av_q2d(p_fmt_ctx->streams[audio_stream_index]->time_base);
-		int64_t pts_audio = int64_t(milseconds / 1000.0 / d);
-		int n1 = av_seek_frame(p_fmt_ctx, audio_stream_index, pts_audio, AVSEEK_FLAG_BACKWARD);
-	}
 }
 
 bool CPacketReader::is_eof()
@@ -146,35 +143,44 @@ void CPacketReader::clear_data()
 //
 int CPacketReader::read_thread()
 {
+	auto is_cache_full = [this]()->bool
+	{
+		if (queue_video_packets.size() > 50 || queue_audio_packets.size() > 20)
+			return true;
+
+		return false;
+	};
+
 	while (true)
 	{
-		
 		if (b_stop == true)
 		{
 			break;
 		}
-		
-		if ( queue_video_packets.size()>50 && queue_audio_packets.size()>20)	//最多缓存2000个packet
+		if (is_cache_full() == true)	//最多缓存2000个packet
 		{
 			util::thread_sleep(10);
 			continue;
 		}
-		
-// 		if (queue_audio_packets.size() > 20)
-// 		{
-// 			util::thread_sleep(10);
-// 			continue;
-// 		}
-		AVPacket* p_packet = (AVPacket*)malloc(sizeof(AVPacket));
-		std::shared_ptr<AVPacket> p(p_packet, &util::av_packet_releaser);
 		extern std::mutex mutex_for_seek;
 		std::lock_guard<std::mutex> lock(mutex_for_seek);
+
+		AVPacket* p_packet = (AVPacket*)malloc(sizeof(AVPacket));
+		std::shared_ptr<AVPacket> p(p_packet, &util::av_packet_releaser);
 		{
-			if (av_read_frame(p_fmt_ctx, p_packet) != 0)
+			int n = av_read_frame(p_fmt_ctx, p.get());
+			if (n < 0)
 			{
-				b_eof = true;	//文件已读完
-				b_stop = true;
-				break;
+				if (n == AVERROR_EOF)
+				{
+					b_eof = true;	//文件已读完
+					util::thread_sleep(10);
+				}
+				else
+				{
+					b_stop = true;
+					break;
+				}
 			}
 		}
 		if (p_packet->stream_index == video_stream_index)

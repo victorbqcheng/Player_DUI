@@ -115,6 +115,7 @@ void CPlayerDUIDlg::onBtnPlayClicked(CMouseEvent e)
 		m_player.play();
 		m_bPlaying = true;
 
+
 		int w = m_player.get_width();
 		int h = m_player.get_height();
 		resizeWindow(w, h);
@@ -399,13 +400,14 @@ void CPlayerDUIDlg::createDUIElement()
 	}
 	CDiv* pDivTime = new CDiv(ID_DIV_TIME);
 	{
-		int const w = 200;
+		int const w = 250;
 		pDivTime->setWidth(w);
 		pDivTime->setHeight(BTN_HEIGHT);
 		pDivTime->setPosition(pPlayBar->getWidth() - w - 5, 0);
 		pDivTime->setTransparent(true);
+		pDivTime->setText("00:00:00/00:00:00");
 		pDivTime->setTextColor(RGB(255, 0, 0));
-		pDivTime->setFontSize(20);
+		pDivTime->setFontSize(25);
 		pDivTime->setFontName("宋体");
 		pDivTime->setTextFormat(DT_RIGHT| DT_VCENTER | DT_SINGLELINE);
 		pPlayBar->addChild(pDivTime);
@@ -731,11 +733,11 @@ BOOL CPlayerDUIDlg::PreTranslateMessage(MSG* pMsg)
 		}
 		else if (key == VK_RIGHT)
 		{
-			m_player.forward(20000);
+			m_player.seek(20000);
 		}
 		else if (key == VK_LEFT)
 		{
-			m_player.backward(10000);
+			m_player.seek(-10000);
 		}
 
 	}

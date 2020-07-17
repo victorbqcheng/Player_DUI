@@ -39,8 +39,9 @@ public:
 
 	void set_speed(double sp);
 
-	void forward(int milseconds);
-	void backward(int milseconds);
+	//milseconds>0:forward
+	//milseconds<0:backward
+	void seek(int milseconds);
 
 	int get_width();
 	int get_height();
@@ -48,12 +49,10 @@ public:
 	int64_t get_play_time();	//
 	void set_render_callback(std::function<void(char* data, int width, int height)> cb);
 private:
-	
 	void init_data();
 	void update_play_time(int64_t t);	//播放时长
 	int play_video_thread();
 	void audio_callback(Uint8 *stream, int len);
-
 private:
 	PLAYER_STATE ps_state = PS_STOPPED;
 	AVFormatContext* p_fmt_context = NULL;
@@ -78,6 +77,7 @@ private:
 	char* audio_buf = NULL;		//音频数据缓冲区起始地址
 	RENDER_CALLBACK render_callback;
 
-	bool m_bBackward = false;
+	bool m_b_fresh_play_time = true;	//当调用forward/backward后play_time就不是有效的了, 需要等音频线程更新
+
 };
 

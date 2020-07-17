@@ -244,14 +244,13 @@ int CAudioDecoder::decode_audio_thread()
 	int ret = 0;
 	while (true)
 	{
-		
-		if (b_stop == true || is_no_packet_to_decode())
+		if (b_stop == true || is_no_packet_to_decode() == true)
 		{
 			break;
 		}
 		if (queue_audio_frames.size() > 100)
 		{
-			util::thread_sleep(5);
+			util::thread_sleep(10);
 			continue;
 		}
 		if (p_packet_reader->audio_packets_num() == 0)	//解码太快，等待读取线程
@@ -261,6 +260,7 @@ int CAudioDecoder::decode_audio_thread()
 		}
 		extern std::mutex mutex_for_seek;
 		std::lock_guard<std::mutex> lock(mutex_for_seek);
+
 		std::shared_ptr<AVPacket> p_packet = p_packet_reader->get_audio_packet();
 		if ((char*)p_packet->data == CPacketReader::FLUSH)
 		{
@@ -270,11 +270,9 @@ int CAudioDecoder::decode_audio_thread()
 		ret = avcodec_send_packet(p_codec_ctx_audio, p_packet.get());
 		if (ret != 0)
 		{
-			if (ret == AVERROR_INVALIDDATA)
-			{
-				continue;
-			}
-			break;
+			if (ret == AVERROR_EOF) break;
+			//快进时可能会出现该错误,但是直接继续可以正常播放
+			if (ret == AVERROR_INVALIDDATA)	continue;
 		}
 		do 
 		{

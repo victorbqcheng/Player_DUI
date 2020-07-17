@@ -154,7 +154,7 @@ void CPlayer::set_speed(double sp)
 	m_play_by_sdl.set_play_speed(play_speed);
 }
 
-void CPlayer::forward(int milseconds)
+void CPlayer::seek(int milseconds)
 {
 	int64_t new_play_time = play_time + int64_t(milseconds);
 	int64_t duration = get_duration();
@@ -162,23 +162,16 @@ void CPlayer::forward(int milseconds)
 	{
 		new_play_time = duration - 1;
 	}
-
-	m_video_decoder.flush();
-	m_audio_decoder.flush();
-	m_packet_reader.seek(new_play_time);
-}
-
-void CPlayer::backward(int milseconds)
-{
-	int64_t new_play_time = play_time - int64_t(milseconds);
-	if (new_play_time <= 0)
+	else if (new_play_time < 0)
 	{
 		new_play_time = 0;
 	}
-	m_video_decoder.flush();
-	m_audio_decoder.flush();
+
 	m_packet_reader.seek(new_play_time);
-	m_bBackward = true;
+	
+	m_audio_decoder.flush();
+	m_video_decoder.flush();
+	m_b_fresh_play_time = false;
 }
 
 int CPlayer::get_width()
@@ -227,7 +220,7 @@ void CPlayer::init_data()
 	int audio_buf_size = 0;
 	char* audio_buf = NULL;
 
-	m_bBackward = false;
+	m_b_fresh_play_time = true;
 }
 
 void CPlayer::update_play_time(int64_t t)
@@ -240,10 +233,15 @@ int CPlayer::play_video_thread()
 	std::shared_ptr<AVFrame> p_frame;
 	while (true)
 	{
-		if (ps_state == PS_PAUSING)
+		if (ps_state == PS_PAUSING )
 		{
 			util::thread_sleep(2);
 			continue;
+		}
+		if (m_b_fresh_play_time == false)
+		{
+			p_frame.reset();
+			util::thread_sleep(2);
 		}
 		if (ps_state == PS_STOPPED || m_video_decoder.is_no_frame_to_render())
 		{
@@ -255,25 +253,18 @@ int CPlayer::play_video_thread()
 			auto current_time_point = std::chrono::system_clock::now();
 			auto d_time = std::chrono::duration_cast<std::chrono::milliseconds>(current_time_point - start_time_point);
 
-			if (m_bBackward == true)
-			{
-				m_bBackward = false;
-				p_frame.reset();
-				continue;
-			}
-
-			if (mil_sec_video <= play_time)
+			if (mil_sec_video <= get_play_time())
 			{
 				ps_state = PS_PLAYING;
 				//记录播放时长
 				//playing_length = mil_sec_video;
 				std::shared_ptr<AVFrame> p = m_video_decoder.convert_frame_to_given(p_frame);
-				
 				if (render_callback)
 				{
 					render_callback((char*)(p->data[0]), p_frame->width, p_frame->height);
 				}
 				p_frame.reset();
+				mil_sec_video = 0;
 			}
 			else
 			{
@@ -282,16 +273,18 @@ int CPlayer::play_video_thread()
 		}
 		else
 		{
-			p_frame = m_video_decoder.get_frame();
-			if (!p_frame)
+			if (m_b_fresh_play_time== true)
 			{
-				util::thread_sleep(10);	//wait to guarantee there is data
+				p_frame = m_video_decoder.get_frame();
+				if (!p_frame)
+				{
+					util::thread_sleep(10);	//wait to guarantee there is data
+				}
 			}
 		}
 	}
 	return 0;
 }
-
 void CPlayer::audio_callback(Uint8 *stream, int len)
 {
 	int len1;
@@ -310,6 +303,7 @@ void CPlayer::audio_callback(Uint8 *stream, int len)
 			audio_pts = pts;
 			int64_t pt = m_audio_decoder.pts_to_milsecond(pts);
 			update_play_time(pt);
+			m_b_fresh_play_time = true;
 		}
 
 		len1 = audio_buf_size - audio_buf_index;	//缓冲区可以提供len1长的数据

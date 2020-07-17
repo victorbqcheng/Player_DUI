@@ -20,6 +20,10 @@ public:
 	//void pause_read();
 	void stop_read();
 
+	bool b_seek = false;
+	void set_seek(int64_t milseconds);
+	int64_t seek_time = 0;
+
 	void seek(int64_t milseconds);
 
 	bool is_eof();
