@@ -77,7 +77,7 @@ private:
 	char* audio_buf = NULL;		//音频数据缓冲区起始地址
 	RENDER_CALLBACK render_callback;
 
-	bool m_b_fresh_play_time = true;	//当调用forward/backward后play_time就不是有效的了, 需要等音频线程更新
-
+	bool m_b_fresh_play_time = true;	//当调用seek后play_time就不是有效的了, 需要等音频线程更新
+	bool m_b_fresh_done = true;			//在seek之后,音频线程是否完成了时间的更新
 };
 

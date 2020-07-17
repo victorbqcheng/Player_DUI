@@ -1,4 +1,5 @@
 #include "pch.h"
+
 #include "CPlayer.h"
 #include "util.h"
 
@@ -172,6 +173,7 @@ void CPlayer::seek(int milseconds)
 	m_audio_decoder.flush();
 	m_video_decoder.flush();
 	m_b_fresh_play_time = false;
+	m_b_fresh_done = false;
 }
 
 int CPlayer::get_width()
@@ -221,6 +223,7 @@ void CPlayer::init_data()
 	char* audio_buf = NULL;
 
 	m_b_fresh_play_time = true;
+	m_b_fresh_done = true;
 }
 
 void CPlayer::update_play_time(int64_t t)
@@ -240,8 +243,15 @@ int CPlayer::play_video_thread()
 		}
 		if (m_b_fresh_play_time == false)
 		{
-			p_frame.reset();
-			util::thread_sleep(2);
+			if (m_b_fresh_done == false)
+			{
+				p_frame.reset();
+				util::thread_sleep(10);
+			}
+			else
+			{
+				m_b_fresh_play_time = true;
+			}
 		}
 		if (ps_state == PS_STOPPED || m_video_decoder.is_no_frame_to_render())
 		{
@@ -303,7 +313,11 @@ void CPlayer::audio_callback(Uint8 *stream, int len)
 			audio_pts = pts;
 			int64_t pt = m_audio_decoder.pts_to_milsecond(pts);
 			update_play_time(pt);
-			m_b_fresh_play_time = true;
+			//m_b_fresh_play_time = true;
+			if (m_b_fresh_play_time == false)
+			{
+				m_b_fresh_done = true;
+			}
 		}
 
 		len1 = audio_buf_size - audio_buf_index;	//缓冲区可以提供len1长的数据
