@@ -10,9 +10,6 @@
 
 CAudioDecoder::CAudioDecoder()
 {
-	this->p_audio_stream = NULL;
-	this->stream_index = -1;
-	this->p_packet_reader = NULL;
 }
 
 CAudioDecoder::~CAudioDecoder()
@@ -99,14 +96,32 @@ void CAudioDecoder::stop_decode()
 void CAudioDecoder::flush()
 {
 	clear_data();
+	std::shared_ptr<AVFrame> p_frame(av_frame_alloc(), &util::av_frame_releaser);
+	p_frame->opaque = (char*)CPacketReader::FLUSH;
+	queue_audio_frames.push_back(p_frame);
+}
+
+bool CAudioDecoder::has_flush_flag()
+{
+	std::shared_ptr<AVFrame> p_frame(av_frame_alloc(), &util::av_frame_releaser);
+	p_frame->opaque = (char*)CPacketReader::FLUSH;
+
+	auto pred = [p_frame](std::shared_ptr<AVFrame> ele)->bool
+	{
+		if (p_frame->opaque == ele->opaque)
+			return true;
+		return false;
+	};
+
+	bool ret = queue_audio_frames.find(p_frame, pred);
+	return ret;
 }
 
 std::shared_ptr<AVFrame> CAudioDecoder::get_frame()
 {
-	if (queue_audio_frames.size() > 0)
+	std::shared_ptr<AVFrame> p;
+	if (queue_audio_frames.pop_front(p))
 	{
-		std::shared_ptr<AVFrame> p;
-		queue_audio_frames.pop(p);
 		return p;
 	}
 	else
@@ -122,11 +137,9 @@ int CAudioDecoder::get_stream_index()
 
 std::tuple<char*, int, int64_t> CAudioDecoder::get_pcm()
 {
-	if (queue_audio_frames.size() > 0)
+	std::shared_ptr<AVFrame> frame;
+	if(queue_audio_frames.pop_front(frame))
 	{
-		std::shared_ptr<AVFrame> frame;
-		queue_audio_frames.pop(frame);
-
 		//set_swr_opts(frame);
 
 		int ret_samples = swr_convert(au_convert_ctx, (uint8_t**)&pcm_out_buffer, pcm_out_buffer_size,
@@ -201,11 +214,6 @@ int64_t CAudioDecoder::milsecond_to_pts(int64_t milsecond)
 
 void CAudioDecoder::clear_data()
 {
-	for (; queue_audio_frames.size() > 0;)
-	{
-		std::shared_ptr<AVFrame> p;
-		queue_audio_frames.pop(p);
-	}
 	queue_audio_frames.clear();
 }
 
@@ -258,36 +266,32 @@ int CAudioDecoder::decode_audio_thread()
 			util::thread_sleep(10);
 			continue;
 		}
-		extern std::mutex mutex_for_seek;
-		std::lock_guard<std::mutex> lock(mutex_for_seek);
 
 		std::shared_ptr<AVPacket> p_packet = p_packet_reader->get_audio_packet();
 		if ((char*)p_packet->data == CPacketReader::FLUSH)
 		{
 			avcodec_flush_buffers(p_codec_ctx_audio);
+			this->flush();
 			continue;
 		}
+
 		ret = avcodec_send_packet(p_codec_ctx_audio, p_packet.get());
 		if (ret != 0)
 		{
 			if (ret == AVERROR_EOF) break;
 			//快进时可能会出现该错误,但是直接继续可以正常播放
-			if (ret == AVERROR_INVALIDDATA)	continue;
+			if (ret == AVERROR_INVALIDDATA)	
+				continue;
 		}
-		do 
+
+		std::shared_ptr<AVFrame> p_frame(av_frame_alloc(), &util::av_frame_releaser);
+		ret = avcodec_receive_frame(p_codec_ctx_audio, p_frame.get());
+		if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF)
 		{
-			std::shared_ptr<AVFrame> p_frame(av_frame_alloc(), &util::av_frame_releaser);
-			ret = avcodec_receive_frame(p_codec_ctx_audio, p_frame.get());
-			if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF)
-			{
-				break;
-			}
-			if (ret != 0)
-			{
-				break;
-			}
-			queue_audio_frames.push(p_frame);
-		} while (true);
+			continue;
+		}
+		if (ret != 0) break;
+		queue_audio_frames.push_back(p_frame);
 	}
 	return 0;
 }

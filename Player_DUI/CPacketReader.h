@@ -1,10 +1,10 @@
 #pragma once
 
-
-#include "CQueue.h"
 #include <memory>
+#include "CQueue.h"
 
-using PacketQueue = CQueue<std::shared_ptr<AVPacket>>;
+//using PacketQueue = CQueue<std::shared_ptr<AVPacket>>;
+using PacketQueue = CDeque<std::shared_ptr<AVPacket>>;
 
 class CPacketReader
 {
@@ -19,17 +19,10 @@ public:
 	void start_read();
 	//void pause_read();
 	void stop_read();
-
-	bool b_seek = false;
-	void set_seek(int64_t milseconds);
-	int64_t seek_time = 0;
-
+	
 	void seek(int64_t milseconds);
-
+	
 	bool is_eof();
-
-	CQueue<AVPacket*>& get_video_queue();
-	CQueue<AVPacket*>& get_audio_queue();
 
 	//队列中视频packet的数量
 	int video_packets_num();
@@ -55,5 +48,8 @@ private:
 
 	PacketQueue queue_video_packets;
 	PacketQueue queue_audio_packets;
+
+	bool m_b_seek = false;
+	int64_t m_seek_time = 0;
 };
 

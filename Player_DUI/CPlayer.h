@@ -77,8 +77,5 @@ private:
 	int audio_buf_size = 0;		//音频缓冲区大小
 	char* audio_buf = NULL;		//音频数据缓冲区起始地址
 	RENDER_CALLBACK render_callback;
-
-	bool m_b_fresh_play_time = true;	//当调用seek后play_time就不是有效的了, 视频线程会等待音频线程更新play_time
-	condition_wrapper condition_done;   //在seek之后,音频线程通知视频线程完成了时间的更新
 };
 

@@ -17,9 +17,6 @@ CVideoDecoder::CVideoDecoder()
 
 CVideoDecoder::~CVideoDecoder()
 {
-// 	stop_decode();
-// 	close();
-// 	clear_data();
 }
 
 int CVideoDecoder::open(AVStream* p_stream, int index, CPacketReader* p_packet_reader)
@@ -147,16 +144,27 @@ int CVideoDecoder::get_height()
 void CVideoDecoder::flush()
 {
 	clear_data();
+	std::shared_ptr<AVFrame> p_frame(av_frame_alloc(), &util::av_frame_releaser);
+	p_frame->opaque = (char*)CPacketReader::FLUSH;
+	queue_video_frames.push_back(p_frame);
 }
+bool CVideoDecoder::has_flush_flag()
+{
+	std::shared_ptr<AVFrame> p_frame(av_frame_alloc(), &util::av_frame_releaser);
+	p_frame->opaque = (char*)CPacketReader::FLUSH;
 
+	auto pred = [p_frame](std::shared_ptr<AVFrame> ele)->bool
+	{
+		if (p_frame->opaque == ele->opaque)
+			return true;
+		return false;
+	};
+	bool ret = queue_video_frames.find(p_frame, pred);
+	return ret;
+}
 void CVideoDecoder::clear_data()
 {
 	AVFrame* p_frm = NULL;
-	for (; queue_video_frames.size() > 0;)
-	{
-		std::shared_ptr<AVFrame> p;
-		queue_video_frames.pop(p);
-	}
 	queue_video_frames.clear();
 }
 bool CVideoDecoder::is_no_packet_to_decode()
@@ -176,10 +184,9 @@ bool CVideoDecoder::is_no_frame_to_render()
 
 std::shared_ptr<AVFrame> CVideoDecoder::get_frame()
 {
-	if (queue_video_frames.size() > 0)
+	std::shared_ptr<AVFrame> p;
+	if (queue_video_frames.pop_front(p))
 	{
-		std::shared_ptr<AVFrame> p;
-		queue_video_frames.pop(p);
 		return p;
 	}
 	else
@@ -268,14 +275,12 @@ int CVideoDecoder::decode_video_thread()
 			util::thread_sleep(10);
 			continue;
 		}
-		extern std::mutex mutex_for_seek;
-		std::lock_guard<std::mutex> lock(mutex_for_seek);
 
 		std::shared_ptr<AVPacket> p_packet = p_packet_reader->get_video_packet();
 		if ((char*)p_packet->data == CPacketReader::FLUSH)
 		{
 			avcodec_flush_buffers(p_codec_ctx_video);
-			util::thread_sleep(10);
+			this->flush();
 			continue;
 		}
 		
@@ -284,7 +289,8 @@ int CVideoDecoder::decode_video_thread()
 		{
 			if (ret == AVERROR_EOF) break;
 			//快进时可能会出现该错误,但是直接继续可以正常播放
-			if (ret == AVERROR_INVALIDDATA)	continue;
+			if (ret == AVERROR_INVALIDDATA)	
+				continue;
 		}
 		
 		std::shared_ptr<AVFrame> p_frame(av_frame_alloc(), &util::av_frame_releaser);
@@ -293,9 +299,10 @@ int CVideoDecoder::decode_video_thread()
 		{
 			continue;
 		}
-		if (ret != 0) break;
+		if (ret != 0) 
+			break;
 
-		queue_video_frames.push(p_frame);
+		queue_video_frames.push_back(p_frame);
 	}
 	return ret;
 }
