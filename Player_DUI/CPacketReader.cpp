@@ -178,7 +178,6 @@ int CPacketReader::read_thread()
 				}
 				else
 				{
-					b_stop = true;
 					break;
 				}
 			}

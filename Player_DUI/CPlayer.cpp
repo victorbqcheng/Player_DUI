@@ -173,7 +173,6 @@ void CPlayer::seek(int milseconds)
 	m_audio_decoder.flush();
 	m_video_decoder.flush();
 	m_b_fresh_play_time = false;
-	m_b_fresh_done = false;
 }
 
 int CPlayer::get_width()
@@ -215,7 +214,6 @@ void CPlayer::init_data()
 	long long playing_length = 0;
 	int volume = 0;
 	double play_speed = 1.0;
-	int64_t audio_pts = 0;
 	int64_t play_time = 0;
 
 	int audio_buf_index = 0;
@@ -223,7 +221,6 @@ void CPlayer::init_data()
 	char* audio_buf = NULL;
 
 	m_b_fresh_play_time = true;
-	m_b_fresh_done = true;
 }
 
 void CPlayer::update_play_time(int64_t t)
@@ -243,15 +240,8 @@ int CPlayer::play_video_thread()
 		}
 		if (m_b_fresh_play_time == false)
 		{
-			if (m_b_fresh_done == false)
-			{
-				p_frame.reset();
-				util::thread_sleep(10);
-			}
-			else
-			{
-				m_b_fresh_play_time = true;
-			}
+			p_frame.reset();
+			condition_done.wait();
 		}
 		if (ps_state == PS_STOPPED || m_video_decoder.is_no_frame_to_render())
 		{
@@ -310,14 +300,14 @@ void CPlayer::audio_callback(Uint8 *stream, int len)
 				break;
 			}
 			audio_buf_index = 0;
-			audio_pts = pts;
 			int64_t pt = m_audio_decoder.pts_to_milsecond(pts);
-			update_play_time(pt);
-			//m_b_fresh_play_time = true;
 			if (m_b_fresh_play_time == false)
 			{
-				m_b_fresh_done = true;
+				m_b_fresh_play_time = true;
+				continue;
 			}
+			condition_done.notify_one();
+			update_play_time(pt);
 		}
 
 		len1 = audio_buf_size - audio_buf_index;	//缓冲区可以提供len1长的数据

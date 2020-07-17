@@ -1,10 +1,12 @@
 #pragma once
 #include "pch.h"
 #include <string>
+
 #include "CPacketReader.h"
 #include "CVideoDecoder.h"
 #include "CAudioDecoder.h"
 #include "CPlayAudioBySDL.h"
+#include "condition_wrapper.h"
 
 using RENDER_CALLBACK = std::function<void(char* data, int width, int height)>;
 
@@ -69,7 +71,6 @@ private:
 	long long playing_length = 0;
 	int volume = 0;
 	double play_speed = 1.0;
-	int64_t audio_pts = 0;	//音视频同步使用。视频会同步到音频
 	int64_t play_time = 0;	//播放进度，单位:微秒。有可能不是真实的播放时长,比如有倍速播放
 
 	int audio_buf_index = 0;	//音频缓冲区游标
@@ -77,7 +78,7 @@ private:
 	char* audio_buf = NULL;		//音频数据缓冲区起始地址
 	RENDER_CALLBACK render_callback;
 
-	bool m_b_fresh_play_time = true;	//当调用seek后play_time就不是有效的了, 需要等音频线程更新
-	bool m_b_fresh_done = true;			//在seek之后,音频线程是否完成了时间的更新
+	bool m_b_fresh_play_time = true;	//当调用seek后play_time就不是有效的了, 视频线程会等待音频线程更新play_time
+	condition_wrapper condition_done;   //在seek之后,音频线程通知视频线程完成了时间的更新
 };
 
