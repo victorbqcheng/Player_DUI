@@ -261,7 +261,7 @@ int CVideoDecoder::decode_video_thread()
 	int ret = 0;
 	while (true)
 	{
-		if (b_stop == true || is_no_packet_to_decode() == true)
+		if (b_stop == true /*|| is_no_packet_to_decode() == true*/)
 		{
 			break;
 		}
@@ -287,7 +287,8 @@ int CVideoDecoder::decode_video_thread()
 		ret = avcodec_send_packet(p_codec_ctx_video, p_packet.get());
 		if (ret != 0)
 		{
-			if (ret == AVERROR_EOF) break;
+			if (ret == AVERROR_EOF) 
+				continue;
 			//快进时可能会出现该错误,但是直接继续可以正常播放
 			if (ret == AVERROR_INVALIDDATA)	
 				continue;

@@ -252,7 +252,7 @@ int CAudioDecoder::decode_audio_thread()
 	int ret = 0;
 	while (true)
 	{
-		if (b_stop == true || is_no_packet_to_decode() == true)
+		if (b_stop == true /*|| is_no_packet_to_decode() == true*/)
 		{
 			break;
 		}
@@ -278,7 +278,8 @@ int CAudioDecoder::decode_audio_thread()
 		ret = avcodec_send_packet(p_codec_ctx_audio, p_packet.get());
 		if (ret != 0)
 		{
-			if (ret == AVERROR_EOF) break;
+			if (ret == AVERROR_EOF) 
+				continue;
 			//快进时可能会出现该错误,但是直接继续可以正常播放
 			if (ret == AVERROR_INVALIDDATA)	
 				continue;
@@ -290,7 +291,8 @@ int CAudioDecoder::decode_audio_thread()
 		{
 			continue;
 		}
-		if (ret != 0) break;
+		if (ret != 0) 
+			break;
 		queue_audio_frames.push_back(p_frame);
 	}
 	return 0;

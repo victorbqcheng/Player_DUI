@@ -150,6 +150,7 @@ int CPacketReader::read_thread()
 				{
 					b_eof = true;	//文件已读完
 					util::thread_sleep(10);
+					continue;
 				}
 				else
 				{

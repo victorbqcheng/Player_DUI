@@ -246,6 +246,7 @@ int CPlayer::play_video_thread()
 			p_frame = m_video_decoder.get_frame();
 			if (p_frame && p_frame->opaque == CPacketReader::FLUSH)
 			{
+				p_frame.reset(); //标志FLUSH的Frame, 舍弃
 				continue;
 			}
 		}
@@ -277,6 +278,7 @@ void CPlayer::audio_callback(Uint8 *stream, int len)
 			std::shared_ptr<AVFrame> p_frame = m_audio_decoder.get_frame();
 			if (p_frame && p_frame->opaque == CPacketReader::FLUSH)
 			{
+				p_frame.reset();  //标志Frame,舍弃
 				continue;
 			}
 			std::tie(audio_buf, audio_buf_size) = m_audio_decoder.get_pcm(p_frame);
