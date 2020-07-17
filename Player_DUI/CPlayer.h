@@ -43,7 +43,9 @@ public:
 
 	//milseconds>0:forward
 	//milseconds<0:backward
-	void seek(int milseconds);
+	void seek_by(int64_t milseconds);
+	//定位到具体进度
+	void seek_to(int64_t milseconds);
 
 	int get_width();
 	int get_height();

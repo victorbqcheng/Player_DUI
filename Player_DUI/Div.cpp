@@ -383,6 +383,11 @@ bool CDiv::onLButtonDown(int x, int y)
 	{
 		bRet = false;
 	}
+	if (this->isDraggable())
+	{
+		PostMessage(m_pUIMgr->getHwndContainer(), WM_SYSCOMMAND, SC_MOVE | HTCAPTION, 0);
+		//SendMessage(m_pUIMgr->getHwndContainer(), WM_NCLBUTTONDOWN, HTCAPTION, 0);
+	}
 	//
 	for (std::map<int, std::deque<CDiv*> >::iterator it = m_children.begin(); it != m_children.end(); it++)
 	{
@@ -410,10 +415,7 @@ bool CDiv::onLButtonDown(int x, int y)
 		m_mdcbWrapper(e);
 	}
 
-	if (this->isDraggable())
-	{
-		PostMessage(m_pUIMgr->getHwndContainer(), WM_SYSCOMMAND, SC_MOVE | 0x02, 0);
-	}
+	
 
 	return bRet;
 }

@@ -57,6 +57,7 @@ public:
 	void onBtnSpeedClicked(CMouseEvent e);
 	void onBtnSpeedMouseMove(CMouseEvent e);
 	void onBtnSpeedMouseLeave(CMouseEvent e);	
+	void onProgressBarClicked(CMouseEvent e);
 
 	void on_video_render_cb(char* data, int width, int height);
 	afx_msg void OnTimer(UINT_PTR nIDEvent);

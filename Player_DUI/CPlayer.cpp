@@ -153,7 +153,7 @@ void CPlayer::set_speed(double sp)
 	m_play_by_sdl.set_play_speed(play_speed);
 }
 
-void CPlayer::seek(int milseconds)
+void CPlayer::seek_by(int64_t milseconds)
 {
 	int64_t new_play_time = play_time + int64_t(milseconds);
 	int64_t duration = get_duration();
@@ -166,8 +166,12 @@ void CPlayer::seek(int milseconds)
 		new_play_time = 0;
 	}
 
-	m_packet_reader.seek(new_play_time);
-	
+	seek_to(new_play_time);
+}
+
+void CPlayer::seek_to(int64_t milseconds)
+{
+	m_packet_reader.seek(milseconds);
 	m_audio_decoder.flush();
 	m_video_decoder.flush();
 }

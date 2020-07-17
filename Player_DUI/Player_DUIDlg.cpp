@@ -98,13 +98,13 @@ void CPlayerDUIDlg::onBtnPlayClicked(CMouseEvent e)
 		return;
 	}
 	CDiv* pDivBtnPlay = uiMgr.getElementByID(ID_BTN_PLAY);
-	pDivBtnPlay->setVisible(false);
+	if(pDivBtnPlay != NULL)
+		pDivBtnPlay->setVisible(false);
 
 	CDiv* pDivBtnPause = uiMgr.getElementByID(ID_BTN_PAUSE);
 	if (pDivBtnPause != NULL)
-	{
 		pDivBtnPause->setVisible(true);
-	}
+
 	
 	if (m_player.open(m_fileName) == 0)
 	{
@@ -152,14 +152,18 @@ void CPlayerDUIDlg::onBtnStopClicked(CMouseEvent e)
 	m_player.stop();
 	m_player.close();
 
-	CDiv* pDivBtnPlay = uiMgr.getElementByID(ID_BTN_PLAY);
-	pDivBtnPlay->setVisible(true);
+	CDiv* pDivPlayBar = uiMgr.getElementByID(ID_PLAY_BAR);
+	if(pDivPlayBar != NULL)
+	{
+		CDiv* pDivBtnPlay = uiMgr.getElementByID(ID_BTN_PLAY);
+		pDivBtnPlay->setVisible(true);
 
-	CDiv* pDivBtnPause = uiMgr.getElementByID(ID_BTN_PAUSE);
-	pDivBtnPause->setVisible(false);
+		CDiv* pDivBtnPause = uiMgr.getElementByID(ID_BTN_PAUSE);
+		pDivBtnPause->setVisible(false);
 
-	CDiv* pDivBtnContinue = uiMgr.getElementByID(ID_BTN_CONTINUE);
-	pDivBtnContinue->setVisible(false);
+		CDiv* pDivBtnContinue = uiMgr.getElementByID(ID_BTN_CONTINUE);
+		pDivBtnContinue->setVisible(false);
+	}
 }
 
 void CPlayerDUIDlg::onBtnSpeedClicked(CMouseEvent e)
@@ -198,6 +202,22 @@ void CPlayerDUIDlg::onBtnSpeedMouseLeave(CMouseEvent e)
 	if (pSpeedMenu != NULL)
 	{
 		pSpeedMenu->setVisible(false);
+	}
+}
+
+void CPlayerDUIDlg::onProgressBarClicked(CMouseEvent e)
+{
+	CDUIProgress* pProgressBar = (CDUIProgress*)uiMgr.getElementByID(ID_PROGRESS_BAR);
+	if (pProgressBar != NULL)
+	{
+		if (m_bPlaying)
+		{
+			int dist = e.nMouseX - pProgressBar->getAbsPosition().x;
+			int nWidth = pProgressBar->getWidth();
+			double percentage = double(dist) / nWidth;
+			int64_t time = int64_t(m_player.get_duration() * percentage);
+			m_player.seek_to(time);
+		}
 	}
 }
 
@@ -277,13 +297,14 @@ void CPlayerDUIDlg::createDUIElement()
 		pDivVolume->setText(buf);
 		pDivVolume->setTextColor(RGB(200, 200, 200));
 		pDivVolume->setTextFormat(DT_VCENTER | DT_SINGLELINE);
-		uiMgr.addElement(pDivVolume);
+		pDivBkGround->addChild(pDivVolume);
 	}
 	CDiv* pDivDrag = new CDiv(ID_DIV_DRAG);
 	{
 		pDivDrag->setPosition(0, 0);
 		pDivDrag->setWidth(rc.right);
-		pDivDrag->setHeight(rc.bottom);
+		//pDivDrag->setHeight(rc.bottom);
+		pDivDrag->setHeight(50);
 		pDivDrag->setDraggable(true);
 		pDivBkGround->addChild(pDivDrag);
 	}
@@ -291,11 +312,12 @@ void CPlayerDUIDlg::createDUIElement()
 	CDUIProgress* pProgressBar = new CDUIProgress(ID_PROGRESS_BAR);
 	{
 		pProgressBar->setWidth(rc.right - rc.left);
-		pProgressBar->setHeight(5);
-		pProgressBar->setPosition(0, rc.bottom - BTN_HEIGHT - 10);
-		pProgressBar->setTransparent(true);
+		pProgressBar->setHeight(10);
+		pProgressBar->setPosition(0, rc.bottom - BTN_HEIGHT - 30);
+		pProgressBar->setTransparent(false);
 		pProgressBar->setBackgroundColor(RGB(100, 100, 100));
 		pProgressBar->setHandleLen(15);
+		pProgressBar->setClickCb(std::bind(&CPlayerDUIDlg::onProgressBarClicked, this, std::placeholders::_1));
 		pDivBkGround->addChild(pProgressBar);
 	}
 
@@ -618,13 +640,14 @@ void CPlayerDUIDlg::OnSize(UINT nType, int cx, int cy)
 	if (pDivDrag != NULL)
 	{
 		pDivDrag->setWidth(cx);
-		pDivDrag->setHeight(cy);
+		//pDivDrag->setHeight(cy);
+		pDivDrag->setHeight(50);
 	}
 	CDiv* pProgressBar = uiMgr.getElementByID(ID_PROGRESS_BAR);
 	if(pProgressBar != NULL)
 	{ 
 		pProgressBar->setWidth(cx);
-		pProgressBar->setPosition(0, cy - BTN_HEIGHT - 10);
+		pProgressBar->setPosition(0, cy - BTN_HEIGHT - 30);
 	}
 	CDiv* pPlayBar = uiMgr.getElementByID(ID_PLAY_BAR);
 	if (pPlayBar != NULL)
@@ -733,17 +756,15 @@ BOOL CPlayerDUIDlg::PreTranslateMessage(MSG* pMsg)
 		}
 		else if (key == VK_RIGHT)
 		{
-			m_player.seek(20000);
+			m_player.seek_by(20000);
 		}
 		else if (key == VK_LEFT)
 		{
-			m_player.seek(-10000);
+			m_player.seek_by(-10000);
 		}
-
 	}
 	return CDialogEx::PreTranslateMessage(pMsg);
 }
-
 
 void CPlayerDUIDlg::OnDropFiles(HDROP hDropInfo)
 {
