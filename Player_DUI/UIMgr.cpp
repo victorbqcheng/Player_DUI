@@ -81,6 +81,13 @@ bool CUIMgr::hookWndMsg(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			this->onLButtonUp(x, y);
 		}
 		break;
+	case WM_LBUTTONDBLCLK:
+		{ 
+			int x = LOWORD(lParam);
+			int y = HIWORD(lParam);
+			this->onLButtonDbClick(x, y);
+		}
+		break;
 	case WM_MOUSEMOVE:
 		{
 			int x = LOWORD(lParam);
@@ -93,20 +100,11 @@ bool CUIMgr::hookWndMsg(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		{
 			hdc = BeginPaint(hWnd, &ps);
 			EndPaint(hWnd, &ps);
-
-			HDC hDC = GetDC(hWnd);
-			onPaint(hWnd, hDC);
-			ReleaseDC(hWnd, hDC);
-
 		}
 		break;
 	case WM_TIMER:
 		{
-			HDC hDC = GetDC(hWnd);
-			//onPaint(hWnd, hDC);
-			ReleaseDC(hWnd, hDC);
-			RECT rc{ 0, 0, 1, 1 };
-			InvalidateRect(m_hWndContainer, &rc, FALSE);
+			render(hWnd);
 		}
 		break;
 	case WM_SIZE:
@@ -254,7 +252,7 @@ void CUIMgr::parseAttr_bkcolor(DivPtr& pDiv, DOMNodeAttrs const& attrs)
 		int nRed = atoi(vecBkColor[0].c_str());
 		int nGreen = atoi(vecBkColor[1].c_str());
 		int nBlue = atoi(vecBkColor[2].c_str());
-		pDiv->setBackgroundColor(RGB(nRed, nGreen, nBlue));
+		pDiv->setBackgroundColor(Gdiplus::Color(nRed, nGreen, nBlue));
 	}
 }
 void CUIMgr::parseAttr_borderWidth(DivPtr& pDiv, DOMNodeAttrs const& attrs)
@@ -278,7 +276,7 @@ void CUIMgr::parseAttr_borderColor(DivPtr& pDiv, DOMNodeAttrs const& attrs)
 		int nRed = atoi(vecBorderColor[0].c_str());
 		int nGreen = atoi(vecBorderColor[1].c_str());
 		int nBlue = atoi(vecBorderColor[2].c_str());
-		pDiv->setBorderColor(RGB(nRed, nGreen, nBlue));
+		pDiv->setBorderColor(Gdiplus::Color(nRed, nGreen, nBlue));
 	}
 }
 void CUIMgr::parseAttr_fontName(DivPtr& pDiv, DOMNodeAttrs const& attrs)
@@ -322,7 +320,7 @@ void CUIMgr::parseAttr_textColor(DivPtr& pDiv, DOMNodeAttrs const& attrs)
 		int nRed = atoi(vecTextColor[0].c_str());
 		int nGreen = atoi(vecTextColor[1].c_str());
 		int nBlue = atoi(vecTextColor[2].c_str());
-		pDiv->setTextColor(RGB(nRed, nGreen, nBlue));
+		pDiv->setTextColor(Gdiplus::Color(nRed, nGreen, nBlue));
 	}
 }
 void CUIMgr::parseAttr_onclick(DivPtr& pDiv, DOMNodeAttrs const& attrs)
@@ -348,23 +346,23 @@ void CUIMgr::parseAttr_textFormat(DivPtr& pDiv, DOMNodeAttrs const& attrs)
 		std::string strTextFormat = (_bstr_t)varTextFormat.bstrVal;
 		if(strTextFormat == "HCENTER")
 		{
-			pDiv->setTextFormat(DT_CENTER);
+			pDiv->setAlignment(ALIGNMENT_CENTER, ALIGNMENT_NEAR);
 		}
 		else if(strTextFormat == "VCENTER")
 		{
-			pDiv->setTextFormat(DT_VCENTER|DT_SINGLELINE);
+			pDiv->setAlignment(ALIGNMENT_NEAR, ALIGNMENT_CENTER);
 		}
 		else if(strTextFormat == "CENTER")
 		{
-			pDiv->setTextFormat(DT_CENTER|DT_VCENTER|DT_SINGLELINE);
+			pDiv->setAlignment(ALIGNMENT_CENTER, ALIGNMENT_CENTER);
 		}
 		else if(strTextFormat == "LEFT")
 		{
-			pDiv->setTextFormat(DT_LEFT);
+			pDiv->setAlignment(ALIGNMENT_NEAR, ALIGNMENT_NEAR);
 		}
 		else if(strTextFormat == "RIGHT")
 		{
-			pDiv->setTextFormat(DT_RIGHT);
+			pDiv->setAlignment(ALIGNMENT_FAR, ALIGNMENT_NEAR);
 		}
 	}
 }
@@ -412,54 +410,59 @@ HWND CUIMgr::getHwndContainer()
 }
 void CUIMgr::onLButtonDown(int x, int y)
 {
-	for(std::map<int, std::deque<CDiv*> >::iterator it=m_elements2.begin(); it!=m_elements2.end(); it++)
+	for(auto it=m_elements2.rbegin(); it!=m_elements2.rend(); it++)
 	{
-		for(int i = (int)it->second.size()-1; i>=0; i--)
+		for (auto it2 = it->second.rbegin(); it2 != it->second.rend(); it2++)
 		{
-			if (it->second[i]->onLButtonDown(x, y))
-			{
-				//return;
-				//	break;	?
-			}
-			if (it->second[i]->isDraggable())
-			{
-				//PostMessage(m_hWndContainer, WM_SYSCOMMAND, SC_MOVE | 0x02, 0);
-			}
+			(*it2)->onLButtonDown(x, y);
 		}
 	}
 }
 void CUIMgr::onLButtonUp(int x, int y)
 {
-	for(std::map<int, std::deque<CDiv*> >::iterator it=m_elements2.begin(); it!=m_elements2.end(); it++)
+	for (auto it = m_elements2.rbegin(); it != m_elements2.rend(); it++)
 	{
-		for(size_t i=0; i<it->second.size(); i++)
+		for (auto it2 = it->second.rbegin(); it2 != it->second.rend(); it2++)
 		{
-			it->second[i]->onLButtonUp(x, y);
+			(*it2)->onLButtonUp(x, y);
 		}
 	}
 }
+
+void CUIMgr::onLButtonDbClick(int x, int y)
+{
+	for (auto it = m_elements2.rbegin(); it != m_elements2.rend(); it++)
+	{
+		for (auto it2 = it->second.rbegin(); it2 != it->second.rend(); it2++)
+		{
+			(*it2)->onLButtonDbClick(x, y);
+		}
+	}
+}
+
 void CUIMgr::onMouseMove(int x, int y)
 {
-	for(std::map<int, std::deque<CDiv*> >::iterator it=m_elements2.begin(); it!=m_elements2.end(); it++)
+	for (auto it = m_elements2.rbegin(); it != m_elements2.rend(); it++)
 	{
-		for(size_t i=0; i<it->second.size(); i++)
+		for (auto it2 = it->second.rbegin(); it2 != it->second.rend(); it2++)
 		{
-			it->second[i]->onMouseMove(x, y);
+			(*it2)->onMouseMove(x, y);
 		}
 	}
 }
 void CUIMgr::onMouseLeave()
 {
-	for(std::map<int, std::deque<CDiv*> >::iterator it=m_elements2.begin(); it!=m_elements2.end(); it++)
+	for (auto it = m_elements2.rbegin(); it != m_elements2.rend(); it++)
 	{
-		for(size_t i=0; i<it->second.size(); i++)
+		for (auto it2 = it->second.rbegin(); it2 != it->second.rend(); it2++)
 		{
-			it->second[i]->onMouseLeave();
+			(*it2)->onMouseLeave();
 		}
 	}
 }
-void CUIMgr::onPaint(HWND hWnd, HDC hDC)
+void CUIMgr::render(HWND hWnd)
 {
+	HDC hDC = GetDC(hWnd);
 	HDC hDCMem = CreateCompatibleDC(hDC);
 	{
 		RECT rc = {0};
@@ -469,20 +472,21 @@ void CUIMgr::onPaint(HWND hWnd, HDC hDC)
 		HBITMAP hBmpMem = CreateCompatibleBitmap(hDC, nWidth, nHeight);
 		SelectObject(hDCMem, hBmpMem);
 		{
-			::SetBkMode(hDCMem, TRANSPARENT);
-			SelectClipRgn(hDCMem, m_hRgnClip);
-			for(std::map<int, std::deque<CDiv*> >::iterator it=m_elements2.begin(); it!=m_elements2.end(); it++)
+			Gdiplus::Graphics g(hDCMem);
+			Gdiplus::Region rgn(m_hRgnClip);
+			g.SetClip(&rgn);
+			for (auto it = m_elements2.begin(); it != m_elements2.end(); it++)
 			{
-				for(size_t i=0; i<it->second.size(); i++)
+				for (auto it2 = it->second.begin(); it2 != it->second.end(); it2++)
 				{
-					it->second[i]->onPaint(hDCMem);
+					(*it2)->onPaint(g);
 				}
 			}
-			SelectClipRgn(hDCMem, NULL);
 			BitBlt(hDC, 0, 0, nWidth, nHeight, hDCMem, 0, 0, SRCCOPY);
 		}
 		DeleteObject(hBmpMem);
 	}
 	DeleteObject(hDCMem);
+	ReleaseDC(hWnd, hDC);
 }
 

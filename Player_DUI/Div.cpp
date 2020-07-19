@@ -6,29 +6,28 @@ Author: victor cheng
 #include "UIMgr.h"
 #include "util.h"
 
-
 CDiv::CDiv(std::string strID)
+	:m_backgroundBrush(Gdiplus::Color::Transparent),
+	m_pen(Gdiplus::Color(0, 0, 0, 0), float(0.0)),
+	m_textBrush(Gdiplus::Color::Black)
 {
 	m_strID = strID;
 	m_nLeftRelative = 0;
 	m_nTopRelative = 0;
 	m_nWidth = 0;
 	m_nHeight = 0;
-
-	m_hBackgroundBrush = (HBRUSH)GetStockObject(NULL_BRUSH);
+	m_nZIndex = 0;
 	m_bFocus = false;
 	m_bClip = false;
 	m_bMouseMove = false;
+	m_pDivParent = NULL;
+	m_bVisible = true;
 	//
-	m_hBorderPen = (HPEN)GetStockObject(NULL_PEN);
-	m_nWidth = 0;
-	m_borderColor = 0;
-	//
-	m_textFormat = DT_LEFT;
-	m_textColor = RGB(0, 0, 0);
-	m_strFontName = "System";
+	m_strFormat.SetAlignment(Gdiplus::StringAlignmentNear);
+	m_strFormat.SetLineAlignment(Gdiplus::StringAlignmentNear);
+	m_strFormat.SetFormatFlags(Gdiplus::StringFormatFlagsNoWrap);
+	m_strFontName = "微软雅黑";
 	m_nFontSize = 12;
-	m_hTextFont = myCreateFont(m_strFontName, m_nFontSize);
 	//
 	m_mousedown = NULL;
 	m_mouseup = NULL;
@@ -36,36 +35,11 @@ CDiv::CDiv(std::string strID)
 	m_mm = NULL;
 	m_ml = NULL;
 	//
-	m_pDivParent = NULL;
-	//m_bParentVisible = true;
-	m_bVisible = true;
-	m_rgnClip = CreateRectRgn(0, 0, 0, 0);
-	m_rgn = CreateRectRgn(0, 0, 0, 0);
-	m_hRgnClipOld = CreateRectRgn(0, 0, 10, 10);
-
-	m_nZIndex = 0;
-
-	m_hBrForRgn = ::CreateSolidBrush(RGB(0, 255, 0));
+	
 }
 
 CDiv::~CDiv(void)
 {
-	if (m_rgnClip != NULL)
-	{
-		DeleteObject(m_rgnClip);
-	}
-	if (m_hTextFont != NULL)
-	{
-		DeleteObject(m_hTextFont);
-	}
-	if (m_hBrForRgn != NULL)
-	{
-		DeleteObject(m_hBrForRgn);
-	}
-	if (m_hRgnClipOld)
-	{
-		DeleteObject(m_hRgnClipOld);
-	}
 }
 
 std::string const& CDiv::getID()
@@ -81,12 +55,6 @@ void CDiv::setPosition(int nLeft, int nTop)
 {
 	m_nLeftRelative = nLeft;
 	m_nTopRelative = nTop;
-	//TODO:更新m_rgn
-	updateRgn();
-	if (m_pDivParent != NULL)
-	{
-		m_pDivParent->updateRgn(DIR_UP);
-	}
 }
 POINT CDiv::getPosition()
 {
@@ -96,12 +64,6 @@ POINT CDiv::getPosition()
 void CDiv::setWidth(int nWidth)
 {
 	m_nWidth = nWidth;
-	//TODO:更新m_rgn
-	updateRgn();
-	if (m_pDivParent != NULL)
-	{
-		m_pDivParent->updateRgn(DIR_UP);
-	}
 }
 int CDiv::getWidth()
 {
@@ -110,12 +72,6 @@ int CDiv::getWidth()
 void CDiv::setHeight(int nHeight)
 {
 	m_nHeight = nHeight;
-	//TODO:更新m_rgn
-	updateRgn();
-	if (m_pDivParent != NULL)
-	{
-		m_pDivParent->updateRgn(DIR_UP);
-	}
 }
 
 int CDiv::getHeight()
@@ -142,22 +98,11 @@ POINT CDiv::getAbsPosition()
 //
 void CDiv::setVisible(bool bVisible)
 {
-	m_bVisible = bVisible;
-
-// 	for (auto it = m_children.begin(); it != m_children.end(); it++)
-// 	{
-// 		std::deque<CDiv*>& dq = it->second;
-// 		for (auto it2 = dq.begin(); it2 != dq.end(); it2++)
-// 		{
-// 			(*it2)->syncParentVisible(m_bVisible);
-// 		}
-// 	}
-
-	updateRgn();
-	if (m_pDivParent != NULL)
+	if (bVisible == false && m_strID == "speed_menu")
 	{
-		m_pDivParent->updateRgn(DIR_UP);
+		int i = 0;
 	}
+	m_bVisible = bVisible;
 }
 
 bool CDiv::isVisible()
@@ -195,16 +140,13 @@ bool CDiv::isTransparent()
 {
 	return m_bTransparent;
 }
-//
-void CDiv::setBackgroundColor(COLORREF color)
+
+void CDiv::setBackgroundColor(Gdiplus::Color color)
 {
-	m_backgroundColor = color;
-	if (m_hBackgroundBrush != NULL)
-	{
-		DeleteObject(m_hBackgroundBrush);
-	}
-	m_hBackgroundBrush = ::CreateSolidBrush(color);
+	m_backgroundColor2 = color;
+	m_backgroundBrush.SetColor(color);
 }
+
 //
 void CDiv::setBackgroundImage(std::wstring fileName, Gdiplus::Rect srcRc)
 {
@@ -217,11 +159,6 @@ void CDiv::setBackgroundImage(char* data, int width, int height)
 	m_bkImgData = data;
 	m_nBkImgDataWidth = width;
 	m_nBkImgDataHeight = height;
-}
-//
-HRGN CDiv::getRgn()
-{
-	return m_rgn;
 }
 
 void CDiv::setShowFrame(bool bShowFrame)
@@ -242,21 +179,23 @@ bool CDiv::isDraggable()
 void CDiv::setFontName(std::string strFontName)
 {
 	m_strFontName = strFontName;
-	if (m_hTextFont != NULL)
-	{
-		DeleteObject(m_hTextFont);
-	}
-	m_hTextFont = myCreateFont(m_strFontName, m_nFontSize);
 }
 void CDiv::setFontSize(int nFontSize)
 {
 	m_nFontSize = nFontSize;
-	if (m_hTextFont != NULL)
-	{
-		DeleteObject(m_hTextFont);
-	}
-	m_hTextFont = myCreateFont(m_strFontName, m_nFontSize);
 }
+
+void CDiv::setAlignment(ALIGNMENT h_align, ALIGNMENT v_align)
+{
+	m_strFormat.SetAlignment(Gdiplus::StringAlignment(h_align));
+	m_strFormat.SetLineAlignment(Gdiplus::StringAlignment(v_align));
+}
+
+void CDiv::setTextColor(Gdiplus::Color color)
+{
+	m_textBrush.SetColor(color);
+}
+
 //
 void CDiv::addChild(CDiv* pDivChild)
 {
@@ -273,18 +212,10 @@ void CDiv::addChild(CDiv* pDivChild)
 	}
 	pDivChild->setParent(this);
 	pDivChild->setUIMgr(m_pUIMgr);
-	updateRgn();
-	if (m_pDivParent != NULL)
-	{
-		m_pDivParent->updateRgn(DIR_UP);
-	}
-	//更新子元素的m_bParentVisible
-	//pDivChild->syncParentVisible(m_bVisible);
 }
 CDiv* CDiv::getChildByID(std::string const& strID)
 {
 	CDiv* pChild = NULL;
-	//for(int i=0; i<m_children2.size(); i++)
 	for (auto it = m_children.begin(); it != m_children.end(); it++)
 	{
 		std::deque<CDiv*>& dq = it->second;
@@ -343,6 +274,12 @@ void CDiv::setClickCb(CLICK_CALLBACK_WRAPPER cb)
 {
 	m_clickWrapper = cb;
 }
+
+void CDiv::setLButtonDbClickCb(LBUTTON_DB_CLICK_CALLBACK_WRAPPER cb)
+{
+	m_lbuttonDbClickWrapper = cb;
+}
+
 //
 void CDiv::setMouseMoveCb(MOUSEMOVE mm)
 {
@@ -370,11 +307,7 @@ void CDiv::setText(std::string const& strText)
 bool CDiv::onLButtonDown(int x, int y)
 {
 	bool bRet = false;
-	if (m_bVisible == false)
-	{
-		return bRet;
-	}
-	if (!PtInRegion(m_rgn, x, y))
+	if (!hitTest(x, y))
 	{
 		return bRet;
 	}
@@ -382,11 +315,6 @@ bool CDiv::onLButtonDown(int x, int y)
 	if (this->isTransparent())	//透明元素,允许消息穿透
 	{
 		bRet = false;
-	}
-	if (this->isDraggable())
-	{
-		PostMessage(m_pUIMgr->getHwndContainer(), WM_SYSCOMMAND, SC_MOVE | HTCAPTION, 0);
-		//SendMessage(m_pUIMgr->getHwndContainer(), WM_NCLBUTTONDOWN, HTCAPTION, 0);
 	}
 	//
 	for (std::map<int, std::deque<CDiv*> >::iterator it = m_children.begin(); it != m_children.end(); it++)
@@ -414,19 +342,17 @@ bool CDiv::onLButtonDown(int x, int y)
 	{
 		m_mdcbWrapper(e);
 	}
-
-	
-
+	if (this->isDraggable())
+	{
+		PostMessage(m_pUIMgr->getHwndContainer(), WM_SYSCOMMAND, SC_MOVE | HTCAPTION, 0);
+		//SendMessage(m_pUIMgr->getHwndContainer(), WM_NCLBUTTONDOWN, HTCAPTION, 0);
+	}
 	return bRet;
 }
 bool CDiv::onLButtonUp(int x, int y)
 {
 	bool bRet = false;
-	if (m_bVisible == false)
-	{
-		return bRet;
-	}
-	if (!PtInRegion(m_rgn, x, y))
+	if (!hitTest(x, y))
 	{
 		return bRet;
 	}
@@ -480,20 +406,51 @@ bool CDiv::onLButtonUp(int x, int y)
 	}
 	return bRet;
 }
-bool CDiv::onMouseMove(int x, int y)
+
+bool CDiv::onLButtonDbClick(int x, int y)
 {
 	bool bRet = false;
-	if (m_bVisible == false)
+	if (!hitTest(x, y))
 	{
 		return bRet;
 	}
-	if (!PtInRegion(m_rgn, x, y) && m_bMouseMove == true)
+	bRet = true;
+	if (this->isTransparent())	//透明元素,允许消息穿透
 	{
-		//m_bMouseMove = false;
-		onMouseLeave();
+		bRet = false;
 	}
-	if (!PtInRegion(m_rgn, x, y))
+	//
+	for (std::map<int, std::deque<CDiv*> >::iterator it = m_children.begin(); it != m_children.end(); it++)
 	{
+		for (auto it2 = it->second.rbegin(); it2 != it->second.rend(); it2++)
+		{
+			if ((*it2)->onLButtonDbClick(x, y))
+			{
+				bRet = true;
+				break;
+			}
+		}
+	}
+	//
+	m_bFocus = true;
+	CMouseEvent e;
+	e.pTarget = this;
+	e.nMouseX = x;
+	e.nMouseY = y;
+
+	if (m_lbuttonDbClickWrapper)
+	{
+		m_lbuttonDbClickWrapper(e);
+	}
+	return bRet;
+}
+
+bool CDiv::onMouseMove(int x, int y)
+{
+	bool bRet = false;
+	if (!hitTest(x, y))
+	{
+		onMouseLeave();
 		return bRet;
 	}
 	bRet = true;
@@ -508,13 +465,12 @@ bool CDiv::onMouseMove(int x, int y)
 		{
 			if ((*it2)->onMouseMove(x, y))
 			{
-				bRet = true;
-				//break;
+				//bRet = true;
 			}
 		}
 	}
 
-	if (PtInRegion(m_rgn, x, y) /*&& m_bMouseMove == false*/)
+	//if (PtInRegion(m_rgn, x, y) /*&& m_bMouseMove == false*/)
 	{
 		m_bMouseMove = true;
 		CMouseEvent e;
@@ -530,7 +486,6 @@ bool CDiv::onMouseMove(int x, int y)
 			m_mmcbWrapper(e);
 		}
 	}
-	//util::log(m_strID + ":onMouseMove\r\n");
 	return bRet;
 }
 bool CDiv::onMouseLeave()
@@ -561,188 +516,176 @@ bool CDiv::onMouseLeave()
 		{
 			m_mlcbWrapper(e);
 		}
-		//util::log(m_strID + ":onMouseLeave\r\n");
 	}
 	return bRet;
 }
 
-void CDiv::onPaint(HDC hDC)
+void CDiv::onPaint(Gdiplus::Graphics& g)
 {
-	static HRGN rgn_static = CreateRectRgn(0, 0, 10, 10);
-	if (m_strID == "aaaa")
-	{
-		int i = 0;
-	}
 	if (m_bVisible == false)
 		return;
-
-	Gdiplus::Graphics g(hDC);
-	GetClipRgn(hDC, m_hRgnClipOld);
-	if (this->isClip())
-	{
-		CombineRgn(m_rgnClip, m_hRgnClipOld, m_rgn, RGN_AND);
-		SelectClipRgn(hDC, m_rgnClip);
-		g.SetClip(m_rgnClip);
-	}
 	
+	Gdiplus::Region rgnOld;
+	auto enter = [this, &g, &rgnOld]()
+	{
+		if (this->isClip())		//update clip region
+		{
+			POINT ptAbs = getAbsPosition();
+			g.GetClip(&rgnOld);
+			Gdiplus::Rect rect{ ptAbs.x, ptAbs.y, m_nWidth, m_nHeight };
+			g.SetClip(rect, Gdiplus::CombineMode::CombineModeIntersect);
+		}
+	};
+	auto leave = [this, &g, &rgnOld]()
+	{
+		if (this->isClip())		//restore clip region
+		{
+			g.SetClip(&rgnOld);
+		}
+	};
+	SafeLeave<void(), void()> sl(enter, leave);
+
 	POINT ptAbs = this->getAbsPosition();
-	RECT rc = { ptAbs.x, ptAbs.y, ptAbs.x + m_nWidth, ptAbs.y + m_nHeight };
-
-	HBRUSH hBrOld = (HBRUSH)::SelectObject(hDC, m_hBackgroundBrush);
-	HPEN hPenOld = (HPEN)::SelectObject(hDC, m_hBorderPen);
-	Rectangle(hDC, rc.left, rc.top, rc.right, rc.bottom);
-	SelectObject(hDC, hBrOld);
-	SelectObject(hDC, hPenOld);
-
+	Gdiplus::Rect rect{ptAbs.x, ptAbs.y, m_nWidth, m_nHeight};
+	g.FillRectangle(&m_backgroundBrush, rect);
+	g.DrawRectangle(&m_pen, rect);
+	
 	if (m_bkImgData != NULL)
 	{
 		Gdiplus::Bitmap bmp(m_nBkImgDataWidth, m_nBkImgDataHeight,
 			m_nBkImgDataWidth * 3, PixelFormat24bppRGB,
 			(BYTE*)m_bkImgData);
-		g.DrawImage(&bmp, 0, 0);
+		g.DrawImage(&bmp, rect, 0, 0, m_nBkImgDataWidth, m_nBkImgDataHeight, Gdiplus::UnitPixel);
 	}
 	//background-image
 	if (m_bkImgSprite.img != NULL)
 	{
-		g.DrawImage(m_bkImgSprite.img, Gdiplus::Rect(rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top),
+		g.DrawImage(m_bkImgSprite.img, rect,
 			m_bkImgSprite.srcRc.X,
 			m_bkImgSprite.srcRc.Y,
 			m_bkImgSprite.srcRc.Width,
 			m_bkImgSprite.srcRc.Height,
 			Gdiplus::UnitPixel);
 	}
-
-	if (this->isClip())
-	{
-		SelectClipRgn(hDC, m_rgnClip);
-	}
-	::SetTextColor(hDC, m_textColor);
-	HFONT hFontOld = (HFONT)::SelectObject(hDC, m_hTextFont);
-	::DrawTextA(hDC, m_strText.c_str(), (int)m_strText.length(), &rc, m_textFormat);
-	SelectObject(hDC, hFontOld);
+ 	
+	Gdiplus::Font font(util::str_2_wstr(m_strFontName).c_str(), 12);
+	Gdiplus::RectF rectf{float(ptAbs.x), float(ptAbs.y), float(m_nWidth), float(m_nHeight)};
+	g.DrawString(util::str_2_wstr(m_strText).c_str(), -1, &font,rectf, &m_strFormat, &m_textBrush);
 	for (std::map<int, std::deque<CDiv*> >::iterator it = m_children.begin(); it != m_children.end(); it++)
 	{
 		for (auto it2 = it->second.begin(); it2 != it->second.end(); it2++)
 		{
-			(*it2)->onPaint(hDC);
+			(*it2)->onPaint(g);
 		}
-	}
-	if (m_bShowFrame)
-	{
-		::FrameRgn(hDC, m_rgn, m_hBrForRgn, 1, 1);
-	}
-
-	//if(m_pDivParent!=NULL && m_pDivParent->isClip())
-	if (this->isClip())
-	{
-		//restore the clip rgn
-		SelectClipRgn(hDC, m_hRgnClipOld);
 	}
 }
 
-void CDiv::setBorderColor(COLORREF color)
+void CDiv::setBorderColor(Gdiplus::Color color)
 {
-	m_borderColor = color;
-	if (m_hBorderPen != NULL)
-	{
-		DeleteObject(m_hBorderPen);
-	}
-	m_hBorderPen = CreatePen(PS_SOLID, m_nBorderWidth, m_borderColor);
+	m_pen.SetColor(color);
 }
 
 void CDiv::setBorderWidth(int nWidth)
 {
-	m_nBorderWidth = nWidth;
-	if (m_hBorderPen != NULL)
+	m_pen.SetWidth(float(nWidth));
+}
+
+bool CDiv::hitTest(int x, int y)
+{
+	if (m_bVisible == false)
+		return false;
+
+	POINT ptAbs = getAbsPosition();
+	RECT rcAbs{ ptAbs.x, ptAbs.y, ptAbs.x + m_nWidth, ptAbs.y + m_nHeight };
+	if (isClip())
 	{
-		DeleteObject(m_hBorderPen);
+		if (PtInRect(&rcAbs, POINT{ x, y }))
+		{
+			return true;
+		}
+		return false;
 	}
-	m_hBorderPen = CreatePen(PS_SOLID, m_nBorderWidth, m_borderColor);
+	if (!isClip())
+	{
+		if (PtInRect(&rcAbs, POINT{ x, y }))
+		{
+			return true;
+		}
+
+		for (std::map<int, std::deque<CDiv*> >::iterator it = m_children.begin(); it != m_children.end(); it++)
+		{
+			for (auto it2 = it->second.rbegin(); it2 != it->second.rend(); it2++)
+			{
+				if ((*it2)->hitTest(x, y))
+				{
+					return true;
+				}
+			}
+		}
+	}
+	return false;
 }
 
-void CDiv::setTextFormat(UINT format)
-{
-	m_textFormat = format;
-}
-void CDiv::setTextColor(COLORREF color)
-{
-	m_textColor = color;
-}
-
-// void CDiv::syncParentVisible(bool bParentVisible)
+// void CDiv::updateRgn(DIRECTION dir /*= DIR_DOWN*/)
 // {
-// 	return;
-// 	m_bParentVisible = bParentVisible;
+// 	POINT ptAbs = this->getAbsPosition();
+// 	if (isVisible())
+// 	{
+// 		BOOL bRet = SetRectRgn(m_rgn, ptAbs.x, ptAbs.y, ptAbs.x + m_nWidth - 1, ptAbs.y + m_nHeight - 1);
+// 	}
+// 	else
+// 	{
+// 		//不可见的元素不占空间
+// 		BOOL bRet = SetRectRgn(m_rgn, 0, 0, 0, 0);
+// 	}
+// 
+// 	if (dir == DIR_DOWN)
+// 	{
+// 		for (auto it = m_children.begin(); it != m_children.end(); it++)
+// 		{
+// 			std::deque<CDiv*>& dq = it->second;
+// 			for (auto it2 = dq.begin(); it2 != dq.end(); it2++)
+// 			{
+// 				(*it2)->updateRgn();
+// 			}
+// 		}
+// 		combineChildrenRgn();
+// 	}
+// 
+// 	if (dir == DIR_UP)
+// 	{
+// 		combineChildrenRgn();
+// 		//继续更新父元素rgn
+// 		if (m_pDivParent != NULL)
+// 		{
+// 			m_pDivParent->updateRgn(DIR_UP);
+// 		}
+// 	}
+//}
+
+//
+// void CDiv::combineChildrenRgn()
+// {
+// 	//当m_bVisible==false时, 无需合并子元素rgn
+// 	if (m_bVisible == false)
+// 	{
+// 		return;
+// 	}
+// 	//当m_bClip==true时,超出自己范围的子元素被剪裁,无需合并子元素rgn
+// 	if (m_bClip == true)
+// 	{
+// 		return;
+// 	}
 // 	for (auto it = m_children.begin(); it != m_children.end(); it++)
 // 	{
 // 		std::deque<CDiv*>& dq = it->second;
 // 		for (auto it2 = dq.begin(); it2 != dq.end(); it2++)
 // 		{
-// 			(*it2)->syncParentVisible(m_bVisible);
+// 			HRGN hRgn = (*it2)->getRgn();
+// 			::CombineRgn(m_rgn, m_rgn, hRgn, RGN_OR);
 // 		}
 // 	}
-// }
-
-void CDiv::updateRgn(DIRECTION dir /*= DIR_DOWN*/)
-{
-	POINT ptAbs = this->getAbsPosition();
-	if (isVisible())
-	{
-		BOOL bRet = SetRectRgn(m_rgn, ptAbs.x, ptAbs.y, ptAbs.x + m_nWidth - 1, ptAbs.y + m_nHeight - 1);
-	}
-	else
-	{
-		//不可见的元素不占空间
-		BOOL bRet = SetRectRgn(m_rgn, 0, 0, 0, 0);
-	}
-
-	if (dir == DIR_DOWN)
-	{
-		for (auto it = m_children.begin(); it != m_children.end(); it++)
-		{
-			std::deque<CDiv*>& dq = it->second;
-			for (auto it2 = dq.begin(); it2 != dq.end(); it2++)
-			{
-				(*it2)->updateRgn();
-			}
-		}
-		combineChildrenRgn();
-	}
-
-	if (dir == DIR_UP)
-	{
-		combineChildrenRgn();
-		//继续更新父元素rgn
-		if (m_pDivParent != NULL)
-		{
-			m_pDivParent->updateRgn(DIR_UP);
-		}
-	}
-}
-
-//
-void CDiv::combineChildrenRgn()
-{
-	//当m_bVisible==false时, 无需合并子元素rgn
-	if (m_bVisible == false)
-	{
-		return;
-	}
-	//当m_bClip==true时,超出自己范围的子元素被剪裁,无需合并子元素rgn
-	if (m_bClip == true)
-	{
-		return;
-	}
-	for (auto it = m_children.begin(); it != m_children.end(); it++)
-	{
-		std::deque<CDiv*>& dq = it->second;
-		for (auto it2 = dq.begin(); it2 != dq.end(); it2++)
-		{
-			HRGN hRgn = (*it2)->getRgn();
-			::CombineRgn(m_rgn, m_rgn, hRgn, RGN_OR);
-		}
-	}
-}
+//}
 
 void CDiv::setUIMgr(CUIMgr* pUIMgr)
 {

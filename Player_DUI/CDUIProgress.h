@@ -6,7 +6,7 @@ public:
 	CDUIProgress(std::string id);
 	virtual ~CDUIProgress();
 	void setPercentage(double percentage);
-	void setPercentageColor(COLORREF clr);
+	void setPercentageColor(Gdiplus::Color clr);
 	virtual void setHeight(int nHeight) override;
 	void setHandleLen(int n);
 private:

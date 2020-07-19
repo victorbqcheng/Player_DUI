@@ -44,9 +44,10 @@ private:
 	CDiv* parseDiv(DOMNode);
 	void onLButtonDown(int x, int y);
 	void onLButtonUp(int x, int y);
+	void onLButtonDbClick(int x, int y);
 	void onMouseMove(int x, int y);
 	void onMouseLeave();
-	void onPaint(HWND hWnd, HDC hDC);
+	void render(HWND hWnd);
 
 	void parseAttr_left(DivPtr& pDiv, DOMNodeAttrs const& attrs);
 	void parseAttr_width(DivPtr& pDiv, DOMNodeAttrs const& attrs);
@@ -64,6 +65,7 @@ private:
 private:
 	HWND m_hWndContainer;
 	HRGN m_hRgnClip = NULL;
+	Gdiplus::Region reg;
 	int m_nTimerID;
 	std::map<std::string, CDiv*> m_elements;	//all children:mapped by id
 	std::map<int, std::deque<CDiv*> > m_elements2;	//all children in z-index

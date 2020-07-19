@@ -168,22 +168,6 @@ void CPlayerDUIDlg::onBtnStopClicked(CMouseEvent e)
 
 void CPlayerDUIDlg::onBtnSpeedClicked(CMouseEvent e)
 {
-	if (m_bPlaying == false)
-	{
-		return;
-	}
-	CDiv* pDiv = uiMgr.getElementByID(ID_BTN_SPEED);
-	if (play_speed > 1.1)
-	{
-		play_speed = 1.0;
-		pDiv->setText("1X");
-	}
-	else
-	{
-		play_speed = 1.5;
-		pDiv->setText("1.5X");
-	}
-	m_player.set_speed(play_speed);
 }
 
 void CPlayerDUIDlg::onBtnSpeedMouseMove(CMouseEvent e)
@@ -221,6 +205,12 @@ void CPlayerDUIDlg::onProgressBarClicked(CMouseEvent e)
 	}
 }
 
+void CPlayerDUIDlg::onDragDbClick(CMouseEvent e)
+{
+	resizeWindow(m_nMaxWidth, m_nMaxHeight);
+	SetWindowPos(NULL, 0, 0, 0, 0, SWP_NOSIZE);
+}
+
 void CPlayerDUIDlg::createSpeedMenuItem(std::string strID, std::string strText, int index)
 {
 	CDiv* pSpeedMenu = uiMgr.getElementByID(ID_SPEED_MENU_CONTAINER);
@@ -228,11 +218,11 @@ void CPlayerDUIDlg::createSpeedMenuItem(std::string strID, std::string strText, 
 	{
 		auto onItemMouseMove = [](CMouseEvent e)
 		{
-			e.pTarget->setTextColor(RGB(0, 255, 0));
+			e.pTarget->setTextColor(Gdiplus::Color(0, 255, 0));
 		};
 		auto onItemMouseLeave = [](CMouseEvent e)
 		{
-			e.pTarget->setTextColor(RGB(0, 0, 0));
+			e.pTarget->setTextColor(Gdiplus::Color(0, 0, 0));
 		};
 		auto onItemClicked = [this, pSpeedMenu, strText, strID](CMouseEvent e)
 		{
@@ -255,12 +245,12 @@ void CPlayerDUIDlg::createSpeedMenuItem(std::string strID, std::string strText, 
 
 		const int ITEM_HEIGHT = 40;
 		CDiv* pMenuItem = new CDiv(strID);
-		pMenuItem->setWidth(BTN_WIDTH);
+		pMenuItem->setWidth(BTN_WIDTH+20);
 		pMenuItem->setHeight(ITEM_HEIGHT);
 		pMenuItem->setPosition(0, ITEM_HEIGHT*index);
 		pMenuItem->setText(strText);
 		pMenuItem->setFontSize(25);
-		pMenuItem->setTextFormat(DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+		pMenuItem->setAlignment(ALIGNMENT_CENTER, ALIGNMENT_CENTER);
 		pMenuItem->setMouseMoveCb(std::function<void(CMouseEvent)>(onItemMouseMove));
 		pMenuItem->setMouseLeaveCb(std::function<void(CMouseEvent)>(onItemMouseLeave));
 		pMenuItem->setClickCb(std::function<void(CMouseEvent e)>(onItemClicked));
@@ -280,42 +270,43 @@ void CPlayerDUIDlg::createDUIElement()
 	using Rect = Gdiplus::Rect;
 	CDiv* pDivBkGround = new CDiv(ID_DIV_BK);
 	{
-		pDivBkGround->setBackgroundColor(RGB(0,0,0));
+		pDivBkGround->setBackgroundColor(Gdiplus::Color(255, 0, 0, 0));
 		pDivBkGround->setPosition(0, 0);
 		pDivBkGround->setWidth(rc.right);
 		pDivBkGround->setHeight(rc.bottom);
 		pDivBkGround->setClip(true);
+		//pDivBkGround->setDraggable(true);
 		uiMgr.addElement(pDivBkGround);
-	}
-	CDiv* pDivVolume = new CDiv(ID_DIV_VOLUME);
-	{
-		pDivVolume->setWidth(85);
-		pDivVolume->setHeight(30);
-		pDivVolume->setPosition(10, 10);
-		char buf[32]{0};
-		sprintf(buf, "volume:%d", m_nVolume);
-		pDivVolume->setText(buf);
-		pDivVolume->setTextColor(RGB(200, 200, 200));
-		pDivVolume->setTextFormat(DT_VCENTER | DT_SINGLELINE);
-		pDivBkGround->addChild(pDivVolume);
 	}
 	CDiv* pDivDrag = new CDiv(ID_DIV_DRAG);
 	{
 		pDivDrag->setPosition(0, 0);
 		pDivDrag->setWidth(rc.right);
-		//pDivDrag->setHeight(rc.bottom);
-		pDivDrag->setHeight(50);
+		pDivDrag->setHeight(rc.bottom);
 		pDivDrag->setDraggable(true);
+		pDivDrag->setLButtonDbClickCb(std::bind(&CPlayerDUIDlg::onDragDbClick, this, std::placeholders::_1));
 		pDivBkGround->addChild(pDivDrag);
 	}
-
+	CDiv* pDivVolume = new CDiv(ID_DIV_VOLUME);
+	{
+		pDivVolume->setWidth(130);
+		pDivVolume->setHeight(30);
+		pDivVolume->setPosition(10, 10);
+		pDivVolume->setTransparent(true);
+		char buf[32]{ 0 };
+		sprintf(buf, "volume:%d", m_nVolume);
+		pDivVolume->setText(buf);
+		pDivVolume->setTextColor(Gdiplus::Color(200, 200, 200));
+		pDivVolume->setAlignment(ALIGNMENT_CENTER, ALIGNMENT_CENTER);
+		pDivBkGround->addChild(pDivVolume);
+	}
 	CDUIProgress* pProgressBar = new CDUIProgress(ID_PROGRESS_BAR);
 	{
 		pProgressBar->setWidth(rc.right - rc.left);
 		pProgressBar->setHeight(10);
 		pProgressBar->setPosition(0, rc.bottom - BTN_HEIGHT - 30);
 		pProgressBar->setTransparent(false);
-		pProgressBar->setBackgroundColor(RGB(100, 100, 100));
+		pProgressBar->setBackgroundColor(Gdiplus::Color(100, 100, 100, 100));
 		pProgressBar->setHandleLen(15);
 		pProgressBar->setClickCb(std::bind(&CPlayerDUIDlg::onProgressBarClicked, this, std::placeholders::_1));
 		pDivBkGround->addChild(pProgressBar);
@@ -328,7 +319,7 @@ void CPlayerDUIDlg::createDUIElement()
 		pPlayBar->setHeight(BTN_HEIGHT);
 		pPlayBar->setPosition(0, 300);
 		pPlayBar->setTransparent(true);
-		pPlayBar->setBackgroundColor(RGB(100, 100, 100));
+		pPlayBar->setBackgroundColor(Gdiplus::Color(100, 100, 100, 100));
 		pDivBkGround->addChild(pPlayBar);
 	}
 
@@ -391,14 +382,14 @@ void CPlayerDUIDlg::createDUIElement()
 	}
 	CDiv* pBtnSpeed = new CDiv(ID_BTN_SPEED);
 	{
-		pBtnSpeed->setWidth(BTN_WIDTH);
+		pBtnSpeed->setWidth(BTN_WIDTH+20);
 		pBtnSpeed->setHeight(BTN_HEIGHT);
 		pBtnSpeed->setPosition(BTN_WIDTH*2, 0);
-		pBtnSpeed->setBackgroundColor(RGB(255, 0, 0));
+		pBtnSpeed->setBackgroundColor(Gdiplus::Color(0, 255, 0, 0));
 		pBtnSpeed->setFontSize(25);
-		pBtnSpeed->setTextFormat(DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+		pBtnSpeed->setAlignment(ALIGNMENT_CENTER, ALIGNMENT_CENTER);
 		pBtnSpeed->setText("1X");
-		//pBtnSpeed->setClickCb(std::bind(&CPlayerDUIDlg::onBtnSpeedClicked, this, std::placeholders::_1));
+		pBtnSpeed->setTextColor(Gdiplus::Color(0, 255, 0));
 		pBtnSpeed->setMouseMoveCb(std::bind(&CPlayerDUIDlg::onBtnSpeedMouseMove, this, std::placeholders::_1));
 		pBtnSpeed->setMouseLeaveCb(std::bind(&CPlayerDUIDlg::onBtnSpeedMouseLeave, this, std::placeholders::_1));
 		pPlayBar->addChild(pBtnSpeed);
@@ -406,16 +397,17 @@ void CPlayerDUIDlg::createDUIElement()
 		CDiv* pSpeedMenu = new CDiv(ID_SPEED_MENU_CONTAINER);
 		{
 			const int ITEM_HEIGHT = 40;
-			pSpeedMenu->setWidth(BTN_WIDTH);
+			pSpeedMenu->setWidth(BTN_WIDTH+20);
 			pSpeedMenu->setHeight(ITEM_HEIGHT * 5);
 			pSpeedMenu->setPosition(0, -200+1);
 			pSpeedMenu->setBackgroundColor(RGB(0, 100, 100));
+			pSpeedMenu->setBackgroundColor(Gdiplus::Color(0, 100, 100));
 			pSpeedMenu->setVisible(false);
 			pBtnSpeed->addChild(pSpeedMenu);
 			
 			createSpeedMenuItem(ID_SPEED_MENU_ITEM_1_5X, "1.5X", 0);
 			createSpeedMenuItem(ID_SPEED_MENU_ITEM_1_25X, "1.25X", 1);
-			createSpeedMenuItem(ID_SPEED_MENU_ITEM_1X, "1.0X", 2);
+			createSpeedMenuItem(ID_SPEED_MENU_ITEM_1X, "1X", 2);
 			createSpeedMenuItem(ID_SPEED_MENU_ITEM_0_75X, "0.75X", 3);
 			createSpeedMenuItem(ID_SPEED_MENU_ITEM_0_5X, "0.5X", 4);
 		}
@@ -425,13 +417,13 @@ void CPlayerDUIDlg::createDUIElement()
 		int const w = 250;
 		pDivTime->setWidth(w);
 		pDivTime->setHeight(BTN_HEIGHT);
-		pDivTime->setPosition(pPlayBar->getWidth() - w - 5, 0);
+		pDivTime->setPosition(pPlayBar->getWidth() - w, 0);
 		pDivTime->setTransparent(true);
 		pDivTime->setText("00:00:00/00:00:00");
-		pDivTime->setTextColor(RGB(255, 0, 0));
+		pDivTime->setTextColor(Gdiplus::Color(255, 255, 255));
 		pDivTime->setFontSize(25);
 		pDivTime->setFontName("宋体");
-		pDivTime->setTextFormat(DT_RIGHT| DT_VCENTER | DT_SINGLELINE);
+		pDivTime->setAlignment(ALIGNMENT_CENTER, ALIGNMENT_CENTER);
 		pPlayBar->addChild(pDivTime);
 	}
 }
@@ -640,8 +632,7 @@ void CPlayerDUIDlg::OnSize(UINT nType, int cx, int cy)
 	if (pDivDrag != NULL)
 	{
 		pDivDrag->setWidth(cx);
-		//pDivDrag->setHeight(cy);
-		pDivDrag->setHeight(50);
+		pDivDrag->setHeight(cy);
 	}
 	CDiv* pProgressBar = uiMgr.getElementByID(ID_PROGRESS_BAR);
 	if(pProgressBar != NULL)
