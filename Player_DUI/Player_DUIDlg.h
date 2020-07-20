@@ -25,7 +25,7 @@ protected:
 	virtual void DoDataExchange(CDataExchange* pDX);	// DDX/DDV 支持
 private:
 	void createDUIElement();
-	void createSpeedMenuItem(std::string strID, std::string strText, int index);
+	void createSpeedMenuItem(std::string strID, std::wstring strText, int index);
 	void showPlayTime(int64_t play_time, int64_t duration);
 	void resizeWindow(int w, int h);
 	void updateVolume();

@@ -11,4 +11,4 @@ GdiPInit::~GdiPInit()
 {
 	GdiplusShutdown(token);
 }
-GdiPInit init;
+GdiPInit initttttttttttttttttt;

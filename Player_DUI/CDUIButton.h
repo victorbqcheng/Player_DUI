@@ -10,9 +10,9 @@ public:
 	}
 	void setButtonWidth(int nWidth);
 	void setButtonHeight(int nHeight);
-	void setBackgroundImage(std::wstring normal, Gdiplus::Rect rcNormal, 
-		std::wstring hover, Gdiplus::Rect rcHover,
-		std::wstring down, Gdiplus::Rect rcDown);
+	void setBackgroundImage(std::wstring normal, Corona::Rect rcNormal,
+		std::wstring hover, Corona::Rect rcHover,
+		std::wstring down, Corona::Rect rcDown);
 	void mouseMoveCb(CMouseEvent e);
 	void mouseLeaveCb(CMouseEvent e);
 private:

@@ -9,6 +9,7 @@ Author: victor cheng 2019
 #include <string>
 #include <gdiplus.h>
 #include "Div.h"
+#include "CGraphic.h"
 
 class CDiv;
 class CUIMgr;
@@ -41,13 +42,15 @@ public:
 	void registerClickHandler(std::string strHandlerName, CLICK ck);
 
 private:
+	void attach(HWND hWnd);
+	void detach();
 	CDiv* parseDiv(DOMNode);
 	void onLButtonDown(int x, int y);
 	void onLButtonUp(int x, int y);
 	void onLButtonDbClick(int x, int y);
 	void onMouseMove(int x, int y);
 	void onMouseLeave();
-	void render(HWND hWnd);
+	void render();
 
 	void parseAttr_left(DivPtr& pDiv, DOMNodeAttrs const& attrs);
 	void parseAttr_width(DivPtr& pDiv, DOMNodeAttrs const& attrs);
@@ -64,11 +67,14 @@ private:
 	void parseAttr_textFormat(DivPtr& pDiv, DOMNodeAttrs const& attrs);
 private:
 	HWND m_hWndContainer;
-	HRGN m_hRgnClip = NULL;
-	Gdiplus::Region reg;
+	HDC m_hDCMem = NULL;
+	HBITMAP m_hBmpMem = NULL;
 	int m_nTimerID;
 	std::map<std::string, CDiv*> m_elements;	//all children:mapped by id
 	std::map<int, std::deque<CDiv*> > m_elements2;	//all children in z-index
 	std::vector<PARSE_ATTR_METHOD> m_vecParseAttrMethods;
 	std::map<std::string, CLICK> m_mapClickHandler;
+
+
+	Corona::CGraphic m_graphic;
 };

@@ -7,9 +7,6 @@ Author: victor cheng
 #include "util.h"
 
 CDiv::CDiv(std::string strID)
-	:m_backgroundBrush(Gdiplus::Color::Transparent),
-	m_pen(Gdiplus::Color(0, 0, 0, 0), float(0.0)),
-	m_textBrush(Gdiplus::Color::Black)
 {
 	m_strID = strID;
 	m_nLeftRelative = 0;
@@ -23,11 +20,9 @@ CDiv::CDiv(std::string strID)
 	m_pDivParent = NULL;
 	m_bVisible = true;
 	//
-	m_strFormat.SetAlignment(Gdiplus::StringAlignmentNear);
-	m_strFormat.SetLineAlignment(Gdiplus::StringAlignmentNear);
-	m_strFormat.SetFormatFlags(Gdiplus::StringFormatFlagsNoWrap);
-	m_strFontName = "Î¢ÈíÑÅºÚ";
-	m_nFontSize = 12;
+	//m_strFormat.SetFormatFlags(Gdiplus::StringFormatFlagsNoWrap);
+	m_font.fontName = L"Î¢ÈíÑÅºÚ";
+	m_font.fontSize = 12;
 	//
 	m_mousedown = NULL;
 	m_mouseup = NULL;
@@ -35,7 +30,7 @@ CDiv::CDiv(std::string strID)
 	m_mm = NULL;
 	m_ml = NULL;
 	//
-	
+	m_borderColor = Corona::Color(255, 255, 0, 0);
 }
 
 CDiv::~CDiv(void)
@@ -141,17 +136,9 @@ bool CDiv::isTransparent()
 	return m_bTransparent;
 }
 
-void CDiv::setBackgroundColor(Gdiplus::Color color)
+void CDiv::setBackgroundColor(Corona::Color color)
 {
-	m_backgroundColor2 = color;
-	m_backgroundBrush.SetColor(color);
-}
-
-//
-void CDiv::setBackgroundImage(std::wstring fileName, Gdiplus::Rect srcRc)
-{
-	m_bkImgSprite.img = Gdiplus::Image::FromFile(fileName.c_str());
-	m_bkImgSprite.srcRc = srcRc;
+	m_backgroundColor = color;
 }
 
 void CDiv::setBackgroundImage(char* data, int width, int height)
@@ -159,6 +146,12 @@ void CDiv::setBackgroundImage(char* data, int width, int height)
 	m_bkImgData = data;
 	m_nBkImgDataWidth = width;
 	m_nBkImgDataHeight = height;
+}
+
+void CDiv::setBackgroundImage(std::wstring const& fileName, Corona::Rect const& srcRc)
+{
+	m_bkImgSprite.fileName = fileName;
+	m_bkImgSprite.srcRect = srcRc;
 }
 
 void CDiv::setShowFrame(bool bShowFrame)
@@ -176,26 +169,35 @@ bool CDiv::isDraggable()
 	return m_bDraggable;
 }
 //
-void CDiv::setFontName(std::string strFontName)
+void CDiv::setFontName(std::wstring const& strFontName)
 {
-	m_strFontName = strFontName;
+	m_font.fontName = strFontName;
 }
 void CDiv::setFontSize(int nFontSize)
 {
-	m_nFontSize = nFontSize;
+	m_font.fontSize = nFontSize;
 }
 
-void CDiv::setAlignment(ALIGNMENT h_align, ALIGNMENT v_align)
+void CDiv::setAlignment(Corona::ALIGNMENT h_align, Corona::ALIGNMENT v_align)
 {
-	m_strFormat.SetAlignment(Gdiplus::StringAlignment(h_align));
-	m_strFormat.SetLineAlignment(Gdiplus::StringAlignment(v_align));
+	m_strFormat.alignment = h_align;
+	m_strFormat.lineAlignment = v_align;
 }
 
-void CDiv::setTextColor(Gdiplus::Color color)
+void CDiv::setTextColor(Corona::Color color)
 {
-	m_textBrush.SetColor(color);
+	m_textColor = color;
+}
+void CDiv::setBorderColor(Corona::Color color)
+{
+	m_borderColor = color;
 }
 
+void CDiv::setBorderWidth(int nWidth)
+{
+	//m_pen.SetWidth(float(nWidth));
+	m_borderWidth = nWidth;
+}
 //
 void CDiv::addChild(CDiv* pDivChild)
 {
@@ -299,7 +301,7 @@ void CDiv::setMouseLeaveCb(MOUSELEAVE_CALLBACK_WRAPPER cb)
 	m_mlcbWrapper = cb;
 }
 //
-void CDiv::setText(std::string const& strText)
+void CDiv::setText(std::wstring const& strText)
 {
 	m_strText = strText;
 }
@@ -520,57 +522,44 @@ bool CDiv::onMouseLeave()
 	return bRet;
 }
 
-void CDiv::onPaint(Gdiplus::Graphics& g)
+void CDiv::onPaint(Corona::CGraphic& g)
 {
 	if (m_bVisible == false)
 		return;
-	
-	Gdiplus::Region rgnOld;
-	auto enter = [this, &g, &rgnOld]()
+	auto enter = [this, &g]()
 	{
 		if (this->isClip())		//update clip region
 		{
+			g.save_clip();
 			POINT ptAbs = getAbsPosition();
-			g.GetClip(&rgnOld);
-			Gdiplus::Rect rect{ ptAbs.x, ptAbs.y, m_nWidth, m_nHeight };
-			g.SetClip(rect, Gdiplus::CombineMode::CombineModeIntersect);
+			g.set_clip(Corona::Rect{ptAbs.x, ptAbs.y, m_nWidth, m_nHeight});
 		}
 	};
-	auto leave = [this, &g, &rgnOld]()
+	auto leave = [this, &g]()
 	{
 		if (this->isClip())		//restore clip region
 		{
-			g.SetClip(&rgnOld);
+			g.restore_clip();
 		}
 	};
 	SafeLeave<void(), void()> sl(enter, leave);
 
 	POINT ptAbs = this->getAbsPosition();
-	Gdiplus::Rect rect{ptAbs.x, ptAbs.y, m_nWidth, m_nHeight};
-	g.FillRectangle(&m_backgroundBrush, rect);
-	g.DrawRectangle(&m_pen, rect);
-	
+	Corona::Rect rect{ ptAbs.x, ptAbs.y, m_nWidth, m_nHeight };
+ 	g.fill_rectangle(ptAbs.x, ptAbs.y, m_nWidth, m_nHeight, m_backgroundColor);
+	//todo:background image
+	if (m_bkImgSprite.fileName != L"")
+	{
+		g.draw_image(m_bkImgSprite.fileName, rect, m_bkImgSprite.srcRect);
+	}
 	if (m_bkImgData != NULL)
 	{
-		Gdiplus::Bitmap bmp(m_nBkImgDataWidth, m_nBkImgDataHeight,
-			m_nBkImgDataWidth * 3, PixelFormat24bppRGB,
-			(BYTE*)m_bkImgData);
-		g.DrawImage(&bmp, rect, 0, 0, m_nBkImgDataWidth, m_nBkImgDataHeight, Gdiplus::UnitPixel);
+		Corona::Rect srcRect{0, 0, m_nBkImgDataWidth, m_nBkImgDataHeight};
+		g.draw_image(m_bkImgData, rect, srcRect);
 	}
-	//background-image
-	if (m_bkImgSprite.img != NULL)
-	{
-		g.DrawImage(m_bkImgSprite.img, rect,
-			m_bkImgSprite.srcRc.X,
-			m_bkImgSprite.srcRc.Y,
-			m_bkImgSprite.srcRc.Width,
-			m_bkImgSprite.srcRc.Height,
-			Gdiplus::UnitPixel);
-	}
- 	
-	Gdiplus::Font font(util::str_2_wstr(m_strFontName).c_str(), 12);
-	Gdiplus::RectF rectf{float(ptAbs.x), float(ptAbs.y), float(m_nWidth), float(m_nHeight)};
-	g.DrawString(util::str_2_wstr(m_strText).c_str(), -1, &font,rectf, &m_strFormat, &m_textBrush);
+	g.draw_rectangle(ptAbs.x, ptAbs.y, m_nWidth, m_nHeight, m_borderColor, m_borderWidth);
+	g.draw_string(m_strText.c_str(), m_font, rect , m_textColor, m_strFormat);
+	
 	for (std::map<int, std::deque<CDiv*> >::iterator it = m_children.begin(); it != m_children.end(); it++)
 	{
 		for (auto it2 = it->second.begin(); it2 != it->second.end(); it2++)
@@ -578,16 +567,6 @@ void CDiv::onPaint(Gdiplus::Graphics& g)
 			(*it2)->onPaint(g);
 		}
 	}
-}
-
-void CDiv::setBorderColor(Gdiplus::Color color)
-{
-	m_pen.SetColor(color);
-}
-
-void CDiv::setBorderWidth(int nWidth)
-{
-	m_pen.SetWidth(float(nWidth));
 }
 
 bool CDiv::hitTest(int x, int y)

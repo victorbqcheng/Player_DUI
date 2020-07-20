@@ -3,7 +3,7 @@
 
 
 
-void util::log(std::string str)
+void util::log(std::string const& str)
 {
 #ifdef DEBUG
 

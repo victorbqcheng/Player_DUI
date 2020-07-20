@@ -54,13 +54,10 @@ void CDUIButton::setButtonHeight(int nHeight)
 	m_pDivDown->setHeight(nHeight);
 }
 
-void CDUIButton::setBackgroundImage(std::wstring normal, Gdiplus::Rect rcNormal,
-	std::wstring hover, Gdiplus::Rect rcHover,
-	std::wstring down, Gdiplus::Rect rcDown)
+void CDUIButton::setBackgroundImage(std::wstring normal, Corona::Rect rcNormal, std::wstring hover, Corona::Rect rcHover, std::wstring down, Corona::Rect rcDown)
 {
 	m_pDivNormal->setBackgroundImage(normal, rcNormal);
 	m_pDivHover->setBackgroundImage(hover, rcHover);
 	m_pDivDown->setBackgroundImage(down, rcDown);
 }
-
 

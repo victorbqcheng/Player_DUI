@@ -4,19 +4,19 @@
 CDUIProgress::CDUIProgress(std::string id):CDiv(id)
 {
 	this->setHeight(m_nDefaultHeight);
-	this->setBackgroundColor(Gdiplus::Color(0, 0, 0, 0));
+	this->setBackgroundColor(Corona::Color(0, 0, 0, 0));
 
 	m_pDivCurrentProgress = new CDiv("");
 	m_pDivCurrentProgress->setHeight(m_nDefaultHeight);
 	m_pDivCurrentProgress->setPosition(0, 0);
-	m_pDivCurrentProgress->setBackgroundColor(Gdiplus::Color(50, 0, 255, 0));
+	m_pDivCurrentProgress->setBackgroundColor(Corona::Color(50, 0, 255, 0));
 	this->addChild(m_pDivCurrentProgress);
 
 	m_pDivHandle = new CDiv("");
 	m_pDivHandle->setWidth(m_handleLen);
 	m_pDivHandle->setHeight(m_handleLen);
 	m_pDivHandle->setPosition(0, 0);
-	m_pDivHandle->setBackgroundColor(Gdiplus::Color(255, 0, 0));
+	m_pDivHandle->setBackgroundColor(Corona::Color(255, 0, 0));
 	this->addChild(m_pDivHandle);
 }
 
@@ -37,7 +37,7 @@ void CDUIProgress::setPercentage(double percentage)
 	m_pDivHandle->setPosition(left, pt.y);
 }
 
-void CDUIProgress::setPercentageColor(Gdiplus::Color clr)
+void CDUIProgress::setPercentageColor(Corona::Color clr)
 {
 	m_pDivCurrentProgress->setBackgroundColor(clr);
 }

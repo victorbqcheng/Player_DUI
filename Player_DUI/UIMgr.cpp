@@ -8,6 +8,7 @@ Author: victor cheng 2019
 
 #include "UIMgr.h"
 #include "Div.h"
+#include "util.h"
 
 static std::vector<std::string> splitString(std::string str, std::string sep)
 {
@@ -35,7 +36,6 @@ static std::vector<std::string> splitString(std::string str, std::string sep)
 CUIMgr::CUIMgr( int nID )
 {
 	m_nTimerID = nID;
-	m_hRgnClip = CreateRectRgn(0, 0, 0, 0);
 	REGISTER_PARSE_ATTR_METHOD(left);
 	REGISTER_PARSE_ATTR_METHOD(width);
 	REGISTER_PARSE_ATTR_METHOD(height);
@@ -52,7 +52,6 @@ CUIMgr::CUIMgr( int nID )
 
 CUIMgr::~CUIMgr(void)
 {
-	DeleteObject(m_hRgnClip);
 }
 
 bool CUIMgr::hookWndMsg(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
@@ -63,7 +62,8 @@ bool CUIMgr::hookWndMsg(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	{
 	case WM_CREATE:
 		{
-			m_hWndContainer = hWnd;
+			attach(hWnd);
+			m_graphic.attach(hWnd);
 			SetTimer(hWnd, m_nTimerID, 20, NULL);
 		}
 		break;
@@ -104,14 +104,13 @@ bool CUIMgr::hookWndMsg(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 	case WM_TIMER:
 		{
-			render(hWnd);
+			render();
 		}
 		break;
 	case WM_SIZE:
 		{
 			int w = LOWORD(lParam);
 			int h = HIWORD(lParam);
-			SetRectRgn(m_hRgnClip, 0, 0, w, h);
 		}
 		break;
 	}
@@ -164,6 +163,32 @@ void CUIMgr::registerClickHandler(std::string strHandlerName, CLICK ck)
 {
 	m_mapClickHandler[strHandlerName] = ck;
 }
+
+void CUIMgr::attach(HWND hWnd)
+{
+	m_hWndContainer = hWnd;
+
+	HDC hDC = GetDC(m_hWndContainer);
+	m_hDCMem = CreateCompatibleDC(hDC);
+	{
+		m_hBmpMem = CreateCompatibleBitmap(hDC, 2000, 2000);
+		SelectObject(m_hDCMem, m_hBmpMem);
+	}
+	ReleaseDC(hWnd, hDC);
+}
+
+void CUIMgr::detach()
+{
+	if (m_hBmpMem != NULL)
+	{
+		DeleteObject(m_hBmpMem);
+	}
+	if (m_hDCMem != NULL)
+	{
+		DeleteObject(m_hDCMem);
+	}
+}
+
 CDiv* CUIMgr::parseDiv(DOMNode divNode)
 {
 	DOMNodeAttrs attrs = divNode->Getattributes();
@@ -252,7 +277,7 @@ void CUIMgr::parseAttr_bkcolor(DivPtr& pDiv, DOMNodeAttrs const& attrs)
 		int nRed = atoi(vecBkColor[0].c_str());
 		int nGreen = atoi(vecBkColor[1].c_str());
 		int nBlue = atoi(vecBkColor[2].c_str());
-		pDiv->setBackgroundColor(Gdiplus::Color(nRed, nGreen, nBlue));
+		pDiv->setBackgroundColor(Corona::Color(nRed, nGreen, nBlue));
 	}
 }
 void CUIMgr::parseAttr_borderWidth(DivPtr& pDiv, DOMNodeAttrs const& attrs)
@@ -276,7 +301,7 @@ void CUIMgr::parseAttr_borderColor(DivPtr& pDiv, DOMNodeAttrs const& attrs)
 		int nRed = atoi(vecBorderColor[0].c_str());
 		int nGreen = atoi(vecBorderColor[1].c_str());
 		int nBlue = atoi(vecBorderColor[2].c_str());
-		pDiv->setBorderColor(Gdiplus::Color(nRed, nGreen, nBlue));
+		pDiv->setBorderColor(Corona::Color(nRed, nGreen, nBlue));
 	}
 }
 void CUIMgr::parseAttr_fontName(DivPtr& pDiv, DOMNodeAttrs const& attrs)
@@ -286,7 +311,7 @@ void CUIMgr::parseAttr_fontName(DivPtr& pDiv, DOMNodeAttrs const& attrs)
 	{
 		VARIANT varFontName = fontNameAttr->GetnodeValue();
 		std::string strFontName = (_bstr_t)varFontName.bstrVal;
-		pDiv->setFontName(strFontName);
+		pDiv->setFontName(util::str_2_wstr(strFontName));
 	}
 }
 void CUIMgr::parseAttr_fontSize(DivPtr& pDiv, DOMNodeAttrs const& attrs)
@@ -306,7 +331,7 @@ void CUIMgr::parseAttr_text(DivPtr& pDiv, DOMNodeAttrs const& attrs)
 	{
 		VARIANT varText = textAttr->GetnodeValue();
 		std::string strText = (_bstr_t)varText.bstrVal;
-		pDiv->setText(strText);
+		pDiv->setText(util::str_2_wstr(strText));
 	}
 }
 void CUIMgr::parseAttr_textColor(DivPtr& pDiv, DOMNodeAttrs const& attrs)
@@ -320,7 +345,7 @@ void CUIMgr::parseAttr_textColor(DivPtr& pDiv, DOMNodeAttrs const& attrs)
 		int nRed = atoi(vecTextColor[0].c_str());
 		int nGreen = atoi(vecTextColor[1].c_str());
 		int nBlue = atoi(vecTextColor[2].c_str());
-		pDiv->setTextColor(Gdiplus::Color(nRed, nGreen, nBlue));
+		pDiv->setTextColor(Corona::Color(nRed, nGreen, nBlue));
 	}
 }
 void CUIMgr::parseAttr_onclick(DivPtr& pDiv, DOMNodeAttrs const& attrs)
@@ -346,23 +371,23 @@ void CUIMgr::parseAttr_textFormat(DivPtr& pDiv, DOMNodeAttrs const& attrs)
 		std::string strTextFormat = (_bstr_t)varTextFormat.bstrVal;
 		if(strTextFormat == "HCENTER")
 		{
-			pDiv->setAlignment(ALIGNMENT_CENTER, ALIGNMENT_NEAR);
+			pDiv->setAlignment(Corona::ALIGNMENT_CENTER, Corona::ALIGNMENT_NEAR);
 		}
 		else if(strTextFormat == "VCENTER")
 		{
-			pDiv->setAlignment(ALIGNMENT_NEAR, ALIGNMENT_CENTER);
+			pDiv->setAlignment(Corona::ALIGNMENT_NEAR, Corona::ALIGNMENT_CENTER);
 		}
 		else if(strTextFormat == "CENTER")
 		{
-			pDiv->setAlignment(ALIGNMENT_CENTER, ALIGNMENT_CENTER);
+			pDiv->setAlignment(Corona::ALIGNMENT_CENTER, Corona::ALIGNMENT_CENTER);
 		}
 		else if(strTextFormat == "LEFT")
 		{
-			pDiv->setAlignment(ALIGNMENT_NEAR, ALIGNMENT_NEAR);
+			pDiv->setAlignment(Corona::ALIGNMENT_NEAR, Corona::ALIGNMENT_NEAR);
 		}
 		else if(strTextFormat == "RIGHT")
 		{
-			pDiv->setAlignment(ALIGNMENT_FAR, ALIGNMENT_NEAR);
+			pDiv->setAlignment(Corona::ALIGNMENT_FAR, Corona::ALIGNMENT_NEAR);
 		}
 	}
 }
@@ -460,33 +485,32 @@ void CUIMgr::onMouseLeave()
 		}
 	}
 }
-void CUIMgr::render(HWND hWnd)
+
+void CUIMgr::render()
 {
-	HDC hDC = GetDC(hWnd);
-	HDC hDCMem = CreateCompatibleDC(hDC);
+	m_graphic.begin();
+	for (auto it = m_elements2.begin(); it != m_elements2.end(); it++)
 	{
-		RECT rc = {0};
-		GetClientRect(hWnd, &rc);
-		int nWidth = rc.right - rc.left;
-		int nHeight = rc.bottom - rc.top;
-		HBITMAP hBmpMem = CreateCompatibleBitmap(hDC, nWidth, nHeight);
-		SelectObject(hDCMem, hBmpMem);
+		for (auto it2 = it->second.begin(); it2 != it->second.end(); it2++)
 		{
-			Gdiplus::Graphics g(hDCMem);
-			Gdiplus::Region rgn(m_hRgnClip);
-			g.SetClip(&rgn);
-			for (auto it = m_elements2.begin(); it != m_elements2.end(); it++)
-			{
-				for (auto it2 = it->second.begin(); it2 != it->second.end(); it2++)
-				{
-					(*it2)->onPaint(g);
-				}
-			}
-			BitBlt(hDC, 0, 0, nWidth, nHeight, hDCMem, 0, 0, SRCCOPY);
+			(*it2)->onPaint(m_graphic);
 		}
-		DeleteObject(hBmpMem);
 	}
-	DeleteObject(hDCMem);
-	ReleaseDC(hWnd, hDC);
+	m_graphic.end();
 }
 
+// void CUIMgr::render()
+// {
+// 	HDC hDC = GetDC(m_hWndContainer);
+// 	Gdiplus::Graphics g(m_hDCMem);
+// 	g.ResetClip();
+// 	for (auto it = m_elements2.begin(); it != m_elements2.end(); it++)
+// 	{
+// 		for (auto it2 = it->second.begin(); it2 != it->second.end(); it2++)
+// 		{
+// 			(*it2)->onPaint(g);
+// 		}
+// 	}
+// 	BitBlt(hDC, 0, 0, 2000, 2000, m_hDCMem, 0, 0, SRCCOPY);
+// 	ReleaseDC(m_hWndContainer, hDC);
+// }

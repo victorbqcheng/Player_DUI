@@ -15,16 +15,10 @@ Author: victor cheng
 #include <functional>
 
 #include "Types.h"
+#include "CGraphic.h"
 
 class CDiv;
 class CUIMgr;
-
-enum ALIGNMENT
-{
-	ALIGNMENT_NEAR,
-	ALIGNMENT_CENTER,
-	ALIGNMENT_FAR,
-};
 
 class CMouseEvent
 {
@@ -98,18 +92,17 @@ public:
 
 	void setShowFrame(bool bShowFrame);
 
-	void setText(std::string const& strText);
-	void setFontName(std::string strFontName);
+	void setText(std::wstring const& strText);
+	void setFontName(std::wstring const& strFontName);
 	void setFontSize(int nFontSize);
-	void setAlignment(ALIGNMENT h_align=ALIGNMENT_NEAR, ALIGNMENT v_align=ALIGNMENT_NEAR);
-	void setTextColor(Gdiplus::Color color);
+	void setAlignment(Corona::ALIGNMENT h_align= Corona::ALIGNMENT_NEAR, Corona::ALIGNMENT v_align= Corona::ALIGNMENT_NEAR);
+	void setTextColor(Corona::Color color);
 
-	void setBorderColor(Gdiplus::Color color);
+	void setBorderColor(Corona::Color color);
 	void setBorderWidth(int nWidth);
 	//
-	void setBackgroundColor(Gdiplus::Color color);
-	
-	void setBackgroundImage(std::wstring fileName, Gdiplus::Rect srcRc);
+	void setBackgroundColor(Corona::Color color);	
+	void setBackgroundImage(std::wstring const& fileName, Corona::Rect const& srcRc);
 	void setBackgroundImage(char* data, int width, int height);	//data:RGB数据.播放器使用
 	
 	//message callback
@@ -126,7 +119,7 @@ public:
 	void setMouseLeaveCb(MOUSELEAVE_CALLBACK_WRAPPER cb);
 private:
 	//message handler
-	virtual void onPaint(Gdiplus::Graphics& g);
+	virtual void onPaint(Corona::CGraphic& g);
 	//return value:true--msg has been handled, do not need to proceed anymore 
 	virtual bool onLButtonDown(int x, int y);
 	virtual bool onLButtonUp(int x, int y);
@@ -154,21 +147,20 @@ protected:
 	//剪裁
 	bool m_bClip;
 	//背景
-	Gdiplus::Color m_backgroundColor2;
-	Gdiplus::SolidBrush m_backgroundBrush;
-	ImgSprite m_bkImgSprite;
+	Corona::Color m_backgroundColor;
+	Corona::ImageSprite m_bkImgSprite;
 	char* m_bkImgData = NULL;
 	int m_nBkImgDataWidth = 0;
 	int m_nBkImgDataHeight = 0;
 	//边框
-	Gdiplus::Pen m_pen;
+	Corona::Color m_borderColor;
+	int m_borderWidth = 1;
 	//文字
-	Gdiplus::StringFormat m_strFormat;
-	Gdiplus::SolidBrush m_textBrush;
-	std::string m_strFontName;
-	int m_nFontSize;
-	std::string m_strText;
-
+	Corona::StringFormat m_strFormat;
+	Corona::Color m_textColor;
+	Corona::Font m_font;
+	std::wstring m_strText;
+	//
 	bool m_bDraggable = false;
 	//
 	bool m_bTransparent = false;	//true:鼠标消息可以穿透
