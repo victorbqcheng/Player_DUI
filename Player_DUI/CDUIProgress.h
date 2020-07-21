@@ -10,8 +10,8 @@ public:
 	virtual void setHeight(int nHeight) override;
 	void setHandleLen(int n);
 private:
-	CDiv* m_pDivCurrentProgress = NULL;
-	CDiv* m_pDivHandle = NULL;
+	std::shared_ptr<CDiv> m_pDivCurrentProgress = NULL;
+	std::shared_ptr<CDiv> m_pDivHandle = NULL;
 	double m_percentage = 0.0;
 	int m_nDefaultHeight = 5;
 	int m_handleLen = m_nDefaultHeight;

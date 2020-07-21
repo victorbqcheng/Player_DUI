@@ -68,3 +68,24 @@ std::wstring util::str_2_wstr(const std::string& s)
 	return wstrResult;
 }
 
+std::vector<std::string> util::splitString(std::string  str, std::string sep)
+{
+	std::vector<std::string> result;
+	std::string::size_type pos;
+
+	str += sep;
+	std::string::size_type size = str.size();
+	for (std::string::size_type i = 0; i < size; i++)
+	{
+		pos = str.find(sep, i);
+		if (pos < size)
+		{
+			std::string s = str.substr(i, pos - i);
+			result.push_back(s);
+			i = pos + sep.size() - 1;
+		}
+	}
+	return result;
+}
+
+

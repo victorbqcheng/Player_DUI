@@ -2,6 +2,7 @@
 
 #include <string>
 #include <thread>
+#include <vector>
 class util
 {
 
@@ -12,6 +13,7 @@ public:
 	static void av_frame_releaser(AVFrame* p_frm);
 	static std::string wstr_2_str(const std::wstring& ws);
 	static std::wstring str_2_wstr(const std::string& s);
+	static std::vector<std::string> splitString(std::string str, std::string sep);
 };
 
 #define SAFE_DELETE(p)\

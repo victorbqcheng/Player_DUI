@@ -5,30 +5,10 @@ Author: victor cheng 2019
 
 #include "pch.h"
 
-
 #include "UIMgr.h"
 #include "Div.h"
 #include "util.h"
 
-static std::vector<std::string> splitString(std::string str, std::string sep)
-{
-	std::vector<std::string> result;
-	std::string::size_type pos;
-
-	str += sep;
-	std::string::size_type size = str.size();
-	for(std::string::size_type i=0; i<size; i++)
-	{
-		pos = str.find(sep, i);
-		if(pos < size)
-		{
-			std::string s = str.substr(i, pos-i);
-			result.push_back(s);
-			i = pos + sep.size() - 1;
-		}
-	}
-	return result;
-}
 
 #define REGISTER_PARSE_ATTR_METHOD(attr)\
 	m_vecParseAttrMethods.push_back(&CUIMgr::parseAttr_##attr);
@@ -54,6 +34,12 @@ CUIMgr::~CUIMgr(void)
 {
 }
 
+DivPtr CUIMgr::buildDiv(std::string const& id)
+{
+	auto pDiv = std::make_shared<CDiv>(id);
+	return pDiv;
+}
+
 bool CUIMgr::hookWndMsg(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	PAINTSTRUCT ps;
@@ -64,7 +50,7 @@ bool CUIMgr::hookWndMsg(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		{
 			attach(hWnd);
 			m_graphic.attach(hWnd);
-			SetTimer(hWnd, m_nTimerID, 20, NULL);
+			SetTimer(hWnd, m_nTimerID, 30, NULL);
 		}
 		break;
 	case WM_LBUTTONDOWN:
@@ -126,7 +112,7 @@ bool CUIMgr::parseResource(std::string strFileName)
 	
 	divNode = xmlDoc->selectSingleNode("div");
 	
-	CDiv* pDiv = parseDiv(divNode);
+	auto pDiv = parseDiv(divNode);
 	this->addElement(pDiv);
 	return true;
 }
@@ -140,7 +126,7 @@ bool CUIMgr::parseResource(char const* buf)
 
 	divNode = xmlDoc->selectSingleNode("div");
 
-	CDiv* pDiv = parseDiv(divNode);
+	auto pDiv = parseDiv(divNode);
 	this->addElement(pDiv);
 	return true;
 }
@@ -189,14 +175,14 @@ void CUIMgr::detach()
 	}
 }
 
-CDiv* CUIMgr::parseDiv(DOMNode divNode)
+DivPtr CUIMgr::parseDiv(DOMNode divNode)
 {
 	DOMNodeAttrs attrs = divNode->Getattributes();
 	DOMNode idAttr = attrs->getNamedItem("id");
 	VARIANT varID = idAttr->GetnodeValue();
 	std::string strID = (_bstr_t)varID.bstrVal;
 
-	CDiv* pDiv = new CDiv(strID);
+	DivPtr pDiv = std::make_shared<CDiv>(strID);
 
 	for(size_t i=0; i<m_vecParseAttrMethods.size(); i++)
 	{
@@ -207,13 +193,13 @@ CDiv* CUIMgr::parseDiv(DOMNode divNode)
 	for(int i=0; i<childrenNode->Getlength(); i++)
 	{
 		DOMNode divNodeChild = childrenNode->Getitem(i);
-		CDiv* pDivChild = parseDiv(divNodeChild);
+		auto pDivChild = parseDiv(divNodeChild);
 		pDiv->addChild(pDivChild);
 	}
 
 	return pDiv;
 }
-void CUIMgr::parseAttr_left(DivPtr& pDiv, DOMNodeAttrs const& attrs)
+void CUIMgr::parseAttr_left(DivPtr pDiv, DOMNodeAttrs const& attrs)
 {
 	int nLeft = 0;
 	int nTop = 0;
@@ -232,7 +218,7 @@ void CUIMgr::parseAttr_left(DivPtr& pDiv, DOMNodeAttrs const& attrs)
 	}
 	pDiv->setPosition(nLeft, nTop);
 }
-void CUIMgr::parseAttr_width(DivPtr& pDiv, DOMNodeAttrs const& attrs)
+void CUIMgr::parseAttr_width(DivPtr pDiv, DOMNodeAttrs const& attrs)
 {
 	DOMNode widthAttr = attrs->getNamedItem("width");
 	if(widthAttr != NULL)
@@ -249,7 +235,7 @@ void CUIMgr::parseAttr_width(DivPtr& pDiv, DOMNodeAttrs const& attrs)
 		}
 	}
 }
-void CUIMgr::parseAttr_height(DivPtr& pDiv, DOMNodeAttrs const& attrs)
+void CUIMgr::parseAttr_height(DivPtr pDiv, DOMNodeAttrs const& attrs)
 {
 	DOMNode heightAttr = attrs->getNamedItem("height");
 	if(heightAttr != NULL)
@@ -266,21 +252,21 @@ void CUIMgr::parseAttr_height(DivPtr& pDiv, DOMNodeAttrs const& attrs)
 		}
 	}
 }
-void CUIMgr::parseAttr_bkcolor(DivPtr& pDiv, DOMNodeAttrs const& attrs)
+void CUIMgr::parseAttr_bkcolor(DivPtr pDiv, DOMNodeAttrs const& attrs)
 {
 	DOMNode bkcolorAttr = attrs->getNamedItem("bkcolor");
 	if(bkcolorAttr != NULL)
 	{
 		VARIANT varBkcolor = bkcolorAttr->GetnodeValue();
 		std::string strBkColor = ((_bstr_t)varBkcolor.bstrVal);
-		std::vector<std::string> vecBkColor = splitString(strBkColor, ",");
+		std::vector<std::string> vecBkColor = util::splitString(strBkColor, ",");
 		int nRed = atoi(vecBkColor[0].c_str());
 		int nGreen = atoi(vecBkColor[1].c_str());
 		int nBlue = atoi(vecBkColor[2].c_str());
 		pDiv->setBackgroundColor(Corona::Color(nRed, nGreen, nBlue));
 	}
 }
-void CUIMgr::parseAttr_borderWidth(DivPtr& pDiv, DOMNodeAttrs const& attrs)
+void CUIMgr::parseAttr_borderWidth(DivPtr pDiv, DOMNodeAttrs const& attrs)
 {
 	DOMNode borderWidthAttr = attrs->getNamedItem("borderWidth");
 	if(borderWidthAttr != NULL)
@@ -290,21 +276,21 @@ void CUIMgr::parseAttr_borderWidth(DivPtr& pDiv, DOMNodeAttrs const& attrs)
 		pDiv->setBorderWidth(nBorderWidth);
 	}
 }
-void CUIMgr::parseAttr_borderColor(DivPtr& pDiv, DOMNodeAttrs const& attrs)
+void CUIMgr::parseAttr_borderColor(DivPtr pDiv, DOMNodeAttrs const& attrs)
 {
 	DOMNode borderColorAttr = attrs->getNamedItem("borderColor");
 	if(borderColorAttr != NULL)
 	{
 		VARIANT varBorderColor = borderColorAttr->GetnodeValue();
 		std::string strBorderColor = (_bstr_t)varBorderColor.bstrVal;
-		std::vector<std::string> vecBorderColor = splitString(strBorderColor, ",");
+		std::vector<std::string> vecBorderColor = util::splitString(strBorderColor, ",");
 		int nRed = atoi(vecBorderColor[0].c_str());
 		int nGreen = atoi(vecBorderColor[1].c_str());
 		int nBlue = atoi(vecBorderColor[2].c_str());
 		pDiv->setBorderColor(Corona::Color(nRed, nGreen, nBlue));
 	}
 }
-void CUIMgr::parseAttr_fontName(DivPtr& pDiv, DOMNodeAttrs const& attrs)
+void CUIMgr::parseAttr_fontName(DivPtr pDiv, DOMNodeAttrs const& attrs)
 {
 	DOMNode fontNameAttr = attrs->getNamedItem("fontName");
 	if(fontNameAttr != NULL)
@@ -314,7 +300,7 @@ void CUIMgr::parseAttr_fontName(DivPtr& pDiv, DOMNodeAttrs const& attrs)
 		pDiv->setFontName(util::str_2_wstr(strFontName));
 	}
 }
-void CUIMgr::parseAttr_fontSize(DivPtr& pDiv, DOMNodeAttrs const& attrs)
+void CUIMgr::parseAttr_fontSize(DivPtr pDiv, DOMNodeAttrs const& attrs)
 {
 	DOMNode fontSizeAttr = attrs->getNamedItem("fontSize");
 	if(fontSizeAttr != NULL)
@@ -324,7 +310,7 @@ void CUIMgr::parseAttr_fontSize(DivPtr& pDiv, DOMNodeAttrs const& attrs)
 		pDiv->setFontSize(nFontSize);
 	}
 }
-void CUIMgr::parseAttr_text(DivPtr& pDiv, DOMNodeAttrs const& attrs)
+void CUIMgr::parseAttr_text(DivPtr pDiv, DOMNodeAttrs const& attrs)
 {
 	DOMNode textAttr = attrs->getNamedItem("text");
 	if(textAttr != NULL)
@@ -334,21 +320,21 @@ void CUIMgr::parseAttr_text(DivPtr& pDiv, DOMNodeAttrs const& attrs)
 		pDiv->setText(util::str_2_wstr(strText));
 	}
 }
-void CUIMgr::parseAttr_textColor(DivPtr& pDiv, DOMNodeAttrs const& attrs)
+void CUIMgr::parseAttr_textColor(DivPtr pDiv, DOMNodeAttrs const& attrs)
 {
 	DOMNode textColorAttr = attrs->getNamedItem("textColor");
 	if(textColorAttr != NULL)
 	{
 		VARIANT varTextColor = textColorAttr->GetnodeValue();
 		std::string strTextColor = (_bstr_t)varTextColor.bstrVal;
-		std::vector<std::string> vecTextColor = splitString(strTextColor, ",");
+		std::vector<std::string> vecTextColor = util::splitString(strTextColor, ",");
 		int nRed = atoi(vecTextColor[0].c_str());
 		int nGreen = atoi(vecTextColor[1].c_str());
 		int nBlue = atoi(vecTextColor[2].c_str());
 		pDiv->setTextColor(Corona::Color(nRed, nGreen, nBlue));
 	}
 }
-void CUIMgr::parseAttr_onclick(DivPtr& pDiv, DOMNodeAttrs const& attrs)
+void CUIMgr::parseAttr_onclick(DivPtr pDiv, DOMNodeAttrs const& attrs)
 {
 	DOMNode onclickAttr = attrs->getNamedItem("onclick");
 	if(onclickAttr != NULL)
@@ -362,7 +348,7 @@ void CUIMgr::parseAttr_onclick(DivPtr& pDiv, DOMNodeAttrs const& attrs)
 		}
 	}
 }
-void CUIMgr::parseAttr_textFormat(DivPtr& pDiv, DOMNodeAttrs const& attrs)
+void CUIMgr::parseAttr_textFormat(DivPtr pDiv, DOMNodeAttrs const& attrs)
 {
 	DOMNode textFormatAttr = attrs->getNamedItem("textFormat");
 	if(textFormatAttr != NULL)
@@ -391,7 +377,7 @@ void CUIMgr::parseAttr_textFormat(DivPtr& pDiv, DOMNodeAttrs const& attrs)
 		}
 	}
 }
-void CUIMgr::addElement(CDiv* pElement)
+void CUIMgr::addElement(DivPtr pElement)
 {
 	m_elements[pElement->getID()] = pElement;
 	pElement->setUIMgr(this);
@@ -402,7 +388,7 @@ void CUIMgr::addElement(CDiv* pElement)
 	}
 	else
 	{
-		std::deque<CDiv*> dq;
+		std::deque<DivPtr> dq;
 		dq.push_front(pElement);
 		m_elements2[nZIndex] = dq;
 	}
@@ -413,13 +399,13 @@ CDiv* CUIMgr::getElementByID(std::string strID)
 
 	if(m_elements.find(strID) != m_elements.end())
 	{
-		pDiv = m_elements[strID];
+		pDiv = m_elements[strID].get();
 	}
 	else
 	{
 		for (auto it = m_elements.begin(); it!=m_elements.end(); it++)
 		{
-			pDiv = it->second->getChildByID(strID);
+			pDiv = it->second->getChildByID(strID).get();
 			if (pDiv != NULL)
 			{
 				break;

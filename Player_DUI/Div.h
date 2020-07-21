@@ -20,6 +20,8 @@ Author: victor cheng
 class CDiv;
 class CUIMgr;
 
+using DivPtr = std::shared_ptr<CDiv>;
+
 class CMouseEvent
 {
 public:
@@ -35,25 +37,17 @@ typedef EVENT_CALLBACK CLICK;
 typedef EVENT_CALLBACK MOUSEMOVE;
 typedef EVENT_CALLBACK MOUSELEAVE;
 
+typedef std::function<void(CMouseEvent e)> EVENT_CALLBACK_WRAPPER;
+typedef EVENT_CALLBACK_WRAPPER MOUSEDOWN_CALLBACK_WRAPPER;
+typedef EVENT_CALLBACK_WRAPPER MOUSEUP_CALLBACK_WRAPPER;
+typedef EVENT_CALLBACK_WRAPPER LBUTTON_DB_CLICK_CALLBACK_WRAPPER;
+typedef EVENT_CALLBACK_WRAPPER CLICK_CALLBACK_WRAPPER;
+typedef EVENT_CALLBACK_WRAPPER MOUSEMOVE_CALLBACK_WRAPPER;
+typedef EVENT_CALLBACK_WRAPPER MOUSELEAVE_CALLBACK_WRAPPER;
 
 class CDiv
 {
 	friend class CUIMgr;
-public:
-	//遍历方向：DIR_DOWN-遍历子元素; DIR_UP-遍历父元素
-	enum DIRECTION
-	{
-		DIR_DOWN,
-		DIR_UP,
-	};
-	typedef std::function<void(CMouseEvent e)> EVENT_CALLBACK_WRAPPER;
-	typedef EVENT_CALLBACK_WRAPPER MOUSEDOWN_CALLBACK_WRAPPER;
-	typedef EVENT_CALLBACK_WRAPPER MOUSEUP_CALLBACK_WRAPPER;
-	typedef EVENT_CALLBACK_WRAPPER LBUTTON_DB_CLICK_CALLBACK_WRAPPER;
-	typedef EVENT_CALLBACK_WRAPPER CLICK_CALLBACK_WRAPPER;
-	typedef EVENT_CALLBACK_WRAPPER MOUSEMOVE_CALLBACK_WRAPPER;
-	typedef EVENT_CALLBACK_WRAPPER MOUSELEAVE_CALLBACK_WRAPPER;
-	
 public:
 	CDiv(std::string strID);
 public:
@@ -83,8 +77,9 @@ public:
 	void setTransparent(bool bTrans);
 	bool isTransparent();
 	
-	void addChild(CDiv* pDivChild);
-	CDiv* getChildByID(std::string const& strID);
+	void addChild(DivPtr pDiv);
+	//CDiv* getChildByID(std::string const& strID);
+	DivPtr getChildByID(std::string const& strID);
 	void setParent(CDiv* pDivParent);
 
 	void setDraggable(bool b);
@@ -129,6 +124,7 @@ private:
 protected:
 	bool hitTest(int x, int y);
 	void setUIMgr(CUIMgr* pUIMgr);
+	Corona::Rect calcChldrenBounds();
 	HFONT myCreateFont(std::string strFontName, int nFontSize);
 protected:
 	std::string m_strID;
@@ -169,7 +165,8 @@ protected:
 	//
 	bool m_bMouseMove;
 	//子元素
-	std::map<int, std::deque<CDiv*> > m_children;	//z-index -- children
+	//std::map<int, std::deque<CDiv*> > m_children;	//z-index -- children
+	std::map<int, std::deque<DivPtr>> m_children;	//z-index -- children
 	//
 	bool m_bShowFrame = true;		//是否显示区域边框
 	//callback functions
@@ -185,3 +182,6 @@ protected:
 	MOUSELEAVE m_ml = NULL;
 	MOUSELEAVE_CALLBACK_WRAPPER m_mlcbWrapper;
 };
+
+
+

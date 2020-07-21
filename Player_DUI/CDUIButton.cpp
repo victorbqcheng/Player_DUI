@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "CDUIButton.h"
-
+#include "UIMgr.h"
 
 void CDUIButton::mouseMoveCb(CMouseEvent e)
 {
@@ -15,17 +15,15 @@ void CDUIButton::mouseLeaveCb(CMouseEvent e)
 
 CDUIButton::CDUIButton(std::string id): CDiv(id)
 {
-	m_pDivNormal = new CDiv("button_normal");
+	m_pDivNormal = CUIMgr::buildDiv("button_normal");
 	{
 		m_pDivNormal->setVisible(true);
-		//m_pDivNormal->setBackgroundColor(RGB(0, 0, 0));
 	}
-	m_pDivHover = new CDiv("button_hover");
+	m_pDivHover = CUIMgr::buildDiv("button_hover");
 	{
 		m_pDivHover->setVisible(false);
-		//m_pDivHover->setBackgroundColor(RGB(0, 0, 0));
 	}
-	m_pDivDown = new CDiv("button_down");
+	m_pDivDown = CUIMgr::buildDiv("button_down");
 	{
 		m_pDivDown->setVisible(false);
 	}

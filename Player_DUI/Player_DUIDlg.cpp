@@ -10,6 +10,7 @@
 #include "Div.h"
 #include "CDUIButton.h"
 #include "CDUIProgress.h"
+#include "util.h"
 #include <functional>
 #include <algorithm>
 
@@ -244,7 +245,7 @@ void CPlayerDUIDlg::createSpeedMenuItem(std::string strID, std::wstring strText,
 		};
 
 		const int ITEM_HEIGHT = 40;
-		CDiv* pMenuItem = new CDiv(strID);
+		auto pMenuItem = CUIMgr::buildDiv(strID);
 		pMenuItem->setWidth(BTN_WIDTH+20);
 		pMenuItem->setHeight(ITEM_HEIGHT);
 		pMenuItem->setPosition(0, ITEM_HEIGHT*index);
@@ -269,7 +270,7 @@ void CPlayerDUIDlg::createDUIElement()
 	RECT rc = {0};
 	this->GetClientRect(&rc);
 	using Rect = Corona::Rect;
-	CDiv* pDivBkGround = new CDiv(ID_DIV_BK);
+	auto pDivBkGround = CUIMgr::buildDiv(ID_DIV_BK);
 	{
 		pDivBkGround->setBackgroundColor(Corona::Color(255, 0, 0, 0));
 		pDivBkGround->setPosition(0, 0);
@@ -279,7 +280,7 @@ void CPlayerDUIDlg::createDUIElement()
 		//pDivBkGround->setDraggable(true);
 		uiMgr.addElement(pDivBkGround);
 	}
-	CDiv* pDivDrag = new CDiv(ID_DIV_DRAG);
+	auto pDivDrag = CUIMgr::buildDiv(ID_DIV_DRAG);
 	{
 		pDivDrag->setPosition(0, 0);
 		pDivDrag->setWidth(rc.right);
@@ -288,7 +289,7 @@ void CPlayerDUIDlg::createDUIElement()
 		pDivDrag->setLButtonDbClickCb(std::bind(&CPlayerDUIDlg::onDragDbClick, this, std::placeholders::_1));
 		pDivBkGround->addChild(pDivDrag);
 	}
-	CDiv* pDivVolume = new CDiv(ID_DIV_VOLUME);
+	auto pDivVolume = CUIMgr::buildDiv(ID_DIV_VOLUME);
 	{
 		pDivVolume->setWidth(130);
 		pDivVolume->setHeight(30);
@@ -301,7 +302,7 @@ void CPlayerDUIDlg::createDUIElement()
 		pDivVolume->setAlignment(Corona::ALIGNMENT_NEAR, Corona::ALIGNMENT_NEAR);
 		pDivBkGround->addChild(pDivVolume);
 	}
-	CDUIProgress* pProgressBar = new CDUIProgress(ID_PROGRESS_BAR);
+	auto pProgressBar = CUIMgr::buildElement<CDUIProgress>(ID_PROGRESS_BAR);
 	{
 		pProgressBar->setWidth(rc.right - rc.left);
 		pProgressBar->setHeight(10);
@@ -313,7 +314,7 @@ void CPlayerDUIDlg::createDUIElement()
 		pDivBkGround->addChild(pProgressBar);
 	}
 
-	CDiv* pPlayBar = new CDiv(ID_PLAY_BAR);
+	auto pPlayBar = CUIMgr::buildDiv(ID_PLAY_BAR);
 	{
 		//pPlayBar->setClip(true);
 		pPlayBar->setVisible(false);
@@ -325,7 +326,7 @@ void CPlayerDUIDlg::createDUIElement()
 		pDivBkGround->addChild(pPlayBar);
 	}
 
-	CDUIButton* pBtnPlay = new CDUIButton(ID_BTN_PLAY);
+	auto pBtnPlay = CUIMgr::buildElement<CDUIButton>(ID_BTN_PLAY);
 	{
 		pBtnPlay->setVisible(true);
 		pBtnPlay->setButtonWidth(BTN_WIDTH);
@@ -340,7 +341,7 @@ void CPlayerDUIDlg::createDUIElement()
 		pPlayBar->addChild(pBtnPlay);
 	}
 
-	CDUIButton* pBtnPause = new CDUIButton(ID_BTN_PAUSE);
+	auto pBtnPause = CUIMgr::buildElement<CDUIButton>(ID_BTN_PAUSE);
 	{
 		pBtnPause->setVisible(false);
 		pBtnPause->setButtonWidth(BTN_WIDTH);
@@ -354,7 +355,7 @@ void CPlayerDUIDlg::createDUIElement()
 		pBtnPause->setClickCb(std::bind(&CPlayerDUIDlg::onBtnPauseClicked, this, std::placeholders::_1));
 		pPlayBar->addChild(pBtnPause);
 	}
-	CDUIButton* pBtnContinue = new CDUIButton(ID_BTN_CONTINUE);
+	auto pBtnContinue = CUIMgr::buildElement<CDUIButton>(ID_BTN_CONTINUE);
 	{
 		pBtnContinue->setVisible(false);
 		pBtnContinue->setButtonWidth(BTN_WIDTH);
@@ -368,7 +369,7 @@ void CPlayerDUIDlg::createDUIElement()
 		pBtnContinue->setClickCb(std::bind(&CPlayerDUIDlg::onBtnContinueClicked, this, std::placeholders::_1));
 		pPlayBar->addChild(pBtnContinue);
 	}
-	CDUIButton* pBtnStop = new CDUIButton(ID_BTN_STOP);
+	auto pBtnStop = CUIMgr::buildElement<CDUIButton>(ID_BTN_STOP);
 	{
 		pBtnStop->setVisible(true);
 		pBtnStop->setButtonWidth(BTN_WIDTH);
@@ -382,7 +383,7 @@ void CPlayerDUIDlg::createDUIElement()
 		pBtnStop->setClickCb(std::bind(&CPlayerDUIDlg::onBtnStopClicked, this, std::placeholders::_1));
 		pPlayBar->addChild(pBtnStop);
 	}
-	CDiv* pBtnSpeed = new CDiv(ID_BTN_SPEED);
+	auto pBtnSpeed = CUIMgr::buildDiv(ID_BTN_SPEED);
 	{
 		pBtnSpeed->setWidth(BTN_WIDTH+20);
 		pBtnSpeed->setHeight(BTN_HEIGHT);
@@ -396,7 +397,7 @@ void CPlayerDUIDlg::createDUIElement()
 		pBtnSpeed->setMouseLeaveCb(std::bind(&CPlayerDUIDlg::onBtnSpeedMouseLeave, this, std::placeholders::_1));
 		pPlayBar->addChild(pBtnSpeed);
 
-		CDiv* pSpeedMenu = new CDiv(ID_SPEED_MENU_CONTAINER);
+		auto pSpeedMenu = CUIMgr::buildDiv(ID_SPEED_MENU_CONTAINER);
 		{
 			const int ITEM_HEIGHT = 40;
 			pSpeedMenu->setWidth(BTN_WIDTH+20);
@@ -413,7 +414,7 @@ void CPlayerDUIDlg::createDUIElement()
 			createSpeedMenuItem(ID_SPEED_MENU_ITEM_0_5X, L"0.5X", 4);
 		}
 	}
-	CDiv* pDivTime = new CDiv(ID_DIV_TIME);
+	auto pDivTime = CUIMgr::buildDiv(ID_DIV_TIME);
 	{
 		int const w = 250;
 		pDivTime->setWidth(w);
@@ -446,11 +447,10 @@ void CPlayerDUIDlg::showPlayTime(int64_t play_time, int64_t duration)
 		minutes m_pt = duration_cast<minutes>(mill_pt) - h_pt;
 		seconds s_pt = duration_cast<seconds>(mill_pt) - h_pt - m_pt;
 
-		wchar_t buf[32]{ 0 };
-		wsprintf(buf, L"%02d:%02d:%02lld / %02d:%02d:%02lld", h_pt.count(), m_pt.count(), s_pt.count(),
+		char buf[64]{ 0 };
+		sprintf(buf, "%02d:%02d:%02lld / %02d:%02d:%02lld", h_pt.count(), m_pt.count(), s_pt.count(),
 										  h_dr.count(), m_dr.count(), s_dr.count());
-		pDivTime->setText(buf);
-
+		pDivTime->setText(util::str_2_wstr(buf));
 		//更新进度条
  		double percentage = double(play_time) / double(duration);
  		CDUIProgress* pProgressBar = (CDUIProgress*)uiMgr.getElementByID(ID_PROGRESS_BAR);
@@ -469,7 +469,7 @@ void CPlayerDUIDlg::resizeWindow(int w, int h)
 void CPlayerDUIDlg::updateVolume()
 {
 	wchar_t buf[32]{ 0 };
-	wsprintf(buf, L"volume:%d", m_nVolume);
+	wsprintf(buf, L"volume:%02d", m_nVolume);
 	CDiv* pDivVolume = uiMgr.getElementByID(ID_DIV_VOLUME);
 	pDivVolume->setText(buf);
 

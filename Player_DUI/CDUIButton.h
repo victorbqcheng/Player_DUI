@@ -16,8 +16,8 @@ public:
 	void mouseMoveCb(CMouseEvent e);
 	void mouseLeaveCb(CMouseEvent e);
 private:
-	CDiv* m_pDivNormal;
-	CDiv* m_pDivHover;
-	CDiv* m_pDivDown;
+	std::shared_ptr<CDiv> m_pDivNormal;
+	std::shared_ptr<CDiv> m_pDivHover;
+	std::shared_ptr<CDiv> m_pDivDown;
 };
 

@@ -30,7 +30,7 @@ CDiv::CDiv(std::string strID)
 	m_mm = NULL;
 	m_ml = NULL;
 	//
-	m_borderColor = Corona::Color(255, 255, 0, 0);
+	//m_borderColor = Corona::Color(255, 255, 0, 0);
 }
 
 CDiv::~CDiv(void)
@@ -199,7 +199,7 @@ void CDiv::setBorderWidth(int nWidth)
 	m_borderWidth = nWidth;
 }
 //
-void CDiv::addChild(CDiv* pDivChild)
+void CDiv::addChild(DivPtr pDivChild)
 {
 	int nZIndex = pDivChild->getZIndex();
 	if (m_children.find(nZIndex) != m_children.end())
@@ -208,22 +208,22 @@ void CDiv::addChild(CDiv* pDivChild)
 	}
 	else
 	{
-		std::deque<CDiv*> dq;
+		std::deque<DivPtr> dq;
 		dq.push_front(pDivChild);
 		m_children[nZIndex] = dq;
 	}
 	pDivChild->setParent(this);
 	pDivChild->setUIMgr(m_pUIMgr);
 }
-CDiv* CDiv::getChildByID(std::string const& strID)
+DivPtr CDiv::getChildByID(std::string const& strID)
 {
-	CDiv* pChild = NULL;
+	DivPtr pChild = NULL;
 	for (auto it = m_children.begin(); it != m_children.end(); it++)
 	{
-		std::deque<CDiv*>& dq = it->second;
+		std::deque<DivPtr>& dq = it->second;
 		for (size_t j = 0; j < dq.size(); j++)
 		{
-			CDiv* pDiv = dq[j];
+			DivPtr pDiv = dq[j];
 			if (pDiv->getID() == strID)
 			{
 				pChild = pDiv;
@@ -319,7 +319,7 @@ bool CDiv::onLButtonDown(int x, int y)
 		bRet = false;
 	}
 	//
-	for (std::map<int, std::deque<CDiv*> >::iterator it = m_children.begin(); it != m_children.end(); it++)
+	for (auto it = m_children.begin(); it != m_children.end(); it++)
 	{
 		for (auto it2 = it->second.rbegin(); it2 != it->second.rend(); it2++)
 		{
@@ -365,7 +365,7 @@ bool CDiv::onLButtonUp(int x, int y)
 		bRet = false;
 	}
 	//
-	for (std::map<int, std::deque<CDiv*> >::iterator it = m_children.begin(); it != m_children.end(); it++)
+	for (auto it = m_children.begin(); it != m_children.end(); it++)
 	{
 		for (auto it2 = it->second.rbegin(); it2 != it->second.rend(); it2++)
 		{
@@ -377,7 +377,6 @@ bool CDiv::onLButtonUp(int x, int y)
 		}
 	}
 
-	POINT pt = { x, y };
 	if (m_bFocus)
 	{
 		m_bFocus = false;
@@ -422,7 +421,7 @@ bool CDiv::onLButtonDbClick(int x, int y)
 		bRet = false;
 	}
 	//
-	for (std::map<int, std::deque<CDiv*> >::iterator it = m_children.begin(); it != m_children.end(); it++)
+	for (auto it = m_children.begin(); it != m_children.end(); it++)
 	{
 		for (auto it2 = it->second.rbegin(); it2 != it->second.rend(); it2++)
 		{
@@ -461,7 +460,7 @@ bool CDiv::onMouseMove(int x, int y)
 		bRet = false;
 	}
 	//
-	for (std::map<int, std::deque<CDiv*> >::iterator it = m_children.begin(); it != m_children.end(); it++)
+	for (auto it = m_children.begin(); it != m_children.end(); it++)
 	{
 		for (auto it2 = it->second.rbegin(); it2 != it->second.rend(); it2++)
 		{
@@ -497,7 +496,7 @@ bool CDiv::onMouseLeave()
 	{
 		m_bMouseMove = false;
 
-		for (std::map<int, std::deque<CDiv*> >::iterator it = m_children.begin(); it != m_children.end(); it++)
+		for (auto it = m_children.begin(); it != m_children.end(); it++)
 		{
 			for (auto it2 = it->second.rbegin(); it2 != it->second.rend(); it2++)
 			{
@@ -560,7 +559,7 @@ void CDiv::onPaint(Corona::CGraphic& g)
 	g.draw_rectangle(ptAbs.x, ptAbs.y, m_nWidth, m_nHeight, m_borderColor, m_borderWidth);
 	g.draw_string(m_strText.c_str(), m_font, rect , m_textColor, m_strFormat);
 	
-	for (std::map<int, std::deque<CDiv*> >::iterator it = m_children.begin(); it != m_children.end(); it++)
+	for (auto it = m_children.begin(); it != m_children.end(); it++)
 	{
 		for (auto it2 = it->second.begin(); it2 != it->second.end(); it2++)
 		{
@@ -591,7 +590,7 @@ bool CDiv::hitTest(int x, int y)
 			return true;
 		}
 
-		for (std::map<int, std::deque<CDiv*> >::iterator it = m_children.begin(); it != m_children.end(); it++)
+		for (auto it = m_children.begin(); it != m_children.end(); it++)
 		{
 			for (auto it2 = it->second.rbegin(); it2 != it->second.rend(); it2++)
 			{
@@ -671,13 +670,23 @@ void CDiv::setUIMgr(CUIMgr* pUIMgr)
 	m_pUIMgr = pUIMgr;
 	for (auto it = m_children.begin(); it != m_children.end(); it++)
 	{
-		std::deque<CDiv*>& dq = it->second;
+		//std::deque<CDiv*>& dq = it->second;
+		std::deque<DivPtr>& dq = it->second;
 		for (auto it2 = dq.begin(); it2 != dq.end(); it2++)
 		{
 			(*it2)->setUIMgr(pUIMgr);
 		}
 	}
 }
+
+Corona::Rect CDiv::calcChldrenBounds()
+{
+	Corona::Rect rect;
+
+
+	return rect;
+}
+
 HFONT CDiv::myCreateFont(std::string strFontName, int nFontSize)
 {
 	HFONT hFont = ::CreateFontA(nFontSize, 0, 0, 0,

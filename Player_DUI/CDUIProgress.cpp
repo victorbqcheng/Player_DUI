@@ -1,18 +1,19 @@
 #include "pch.h"
 #include "CDUIProgress.h"
+#include "UIMgr.h"
 
 CDUIProgress::CDUIProgress(std::string id):CDiv(id)
 {
 	this->setHeight(m_nDefaultHeight);
 	this->setBackgroundColor(Corona::Color(0, 0, 0, 0));
 
-	m_pDivCurrentProgress = new CDiv("");
+	m_pDivCurrentProgress = CUIMgr::buildDiv("");
 	m_pDivCurrentProgress->setHeight(m_nDefaultHeight);
 	m_pDivCurrentProgress->setPosition(0, 0);
 	m_pDivCurrentProgress->setBackgroundColor(Corona::Color(50, 0, 255, 0));
 	this->addChild(m_pDivCurrentProgress);
 
-	m_pDivHandle = new CDiv("");
+	m_pDivHandle = CUIMgr::buildDiv("");
 	m_pDivHandle->setWidth(m_handleLen);
 	m_pDivHandle->setHeight(m_handleLen);
 	m_pDivHandle->setPosition(0, 0);
