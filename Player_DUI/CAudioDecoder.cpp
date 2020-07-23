@@ -1,6 +1,7 @@
 #include "pch.h"
-#include "util.h"
+#include "CTools.h"
 #include "CAudioDecoder.h"
+#include "util.h"
 
 #define SAFE_CONTINEU(ret)\
 	if (ret != 0)\
@@ -258,12 +259,12 @@ int CAudioDecoder::decode_audio_thread()
 		}
 		if (queue_audio_frames.size() > 100)
 		{
-			util::thread_sleep(10);
+			CTools::thread_sleep(10);
 			continue;
 		}
 		if (p_packet_reader->audio_packets_num() == 0)	//解码太快，等待读取线程
 		{
-			util::thread_sleep(10);
+			CTools::thread_sleep(10);
 			continue;
 		}
 

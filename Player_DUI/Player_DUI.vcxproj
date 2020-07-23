@@ -64,6 +64,7 @@
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="..\..\FFMpeg\FFMpeg.props" />
+    <Import Project="jsoncpp.props" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
@@ -95,6 +96,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_WINDOWS;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -193,23 +195,29 @@
     <ClInclude Include="CDUIButton.h" />
     <ClInclude Include="CDUIProgress.h" />
     <ClInclude Include="CGraphic.h" />
+    <ClInclude Include="ComponentsCollection.h" />
     <ClInclude Include="condition_wrapper.h" />
     <ClInclude Include="CPacketReader.h" />
+    <ClInclude Include="CParseXml.h" />
     <ClInclude Include="CPlayAudioBySDL.h" />
     <ClInclude Include="CPlayAudioBySDL2.h" />
     <ClInclude Include="CPlayer.h" />
     <ClInclude Include="CQueue.h" />
     <ClInclude Include="CVideoDecoder.h" />
+    <ClInclude Include="CXml.h" />
     <ClInclude Include="Div.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="GdiPInit.h" />
+    <ClInclude Include="ParseAttribute.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="Player_DUI.h" />
     <ClInclude Include="Player_DUIDlg.h" />
+    <ClInclude Include="pugixml\pugiconfig.hpp" />
+    <ClInclude Include="pugixml\pugixml.hpp" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="targetver.h" />
-    <ClInclude Include="Types.h" />
     <ClInclude Include="UIMgr.h" />
+    <ClInclude Include="CTools.h" />
     <ClInclude Include="util.h" />
   </ItemGroup>
   <ItemGroup>
@@ -217,15 +225,19 @@
     <ClCompile Include="CDUIButton.cpp" />
     <ClCompile Include="CDUIProgress.cpp" />
     <ClCompile Include="CGraphic.cpp" />
+    <ClCompile Include="ComponentsCollection.cpp" />
     <ClCompile Include="condition_wrapper.cpp" />
     <ClCompile Include="CPacketReader.cpp" />
+    <ClCompile Include="CParseXml.cpp" />
     <ClCompile Include="CPlayAudioBySDL.cpp" />
     <ClCompile Include="CPlayAudioBySDL2.cpp" />
     <ClCompile Include="CPlayer.cpp" />
     <ClCompile Include="CQueue.cpp" />
     <ClCompile Include="CVideoDecoder.cpp" />
+    <ClCompile Include="CXml.cpp" />
     <ClCompile Include="Div.cpp" />
     <ClCompile Include="GdiPInit.cpp" />
+    <ClCompile Include="ParseAttribute.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
@@ -234,8 +246,11 @@
     </ClCompile>
     <ClCompile Include="Player_DUI.cpp" />
     <ClCompile Include="Player_DUIDlg.cpp" />
-    <ClCompile Include="Types.cpp" />
+    <ClCompile Include="pugixml\pugixml.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="UIMgr.cpp" />
+    <ClCompile Include="CTools.cpp" />
     <ClCompile Include="util.cpp" />
   </ItemGroup>
   <ItemGroup>

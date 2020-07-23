@@ -7,7 +7,7 @@ public:
 	virtual ~CDUIProgress();
 	void setPercentage(double percentage);
 	void setPercentageColor(Corona::Color clr);
-	virtual void setHeight(int nHeight) override;
+	virtual void setHeight(int nHeight, DIV_STATE state=STATE_NORMAL) override;
 	void setHandleLen(int n);
 private:
 	std::shared_ptr<CDiv> m_pDivCurrentProgress = NULL;

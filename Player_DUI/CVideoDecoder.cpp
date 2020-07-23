@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "CVideoDecoder.h"
+#include "CTools.h"
 #include "util.h"
 
 #define SAFE_CONTINEU(ret)\
@@ -267,12 +268,12 @@ int CVideoDecoder::decode_video_thread()
 		}
 		if (queue_video_frames.size() > 10)		//最多缓存10帧
 		{
-			util::thread_sleep(10);
+			CTools::thread_sleep(10);
 			continue;
 		}
 		if (p_packet_reader->video_packets_num() == 0)	//解码太快，等待读取线程
 		{
-			util::thread_sleep(10);
+			CTools::thread_sleep(10);
 			continue;
 		}
 

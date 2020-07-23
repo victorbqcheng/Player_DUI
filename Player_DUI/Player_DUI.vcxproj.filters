@@ -13,6 +13,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="pugixml">
+      <UniqueIdentifier>{60a9d9fb-8a6e-46ef-bd38-27adb8788e7b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Player_DUI.h">
@@ -45,12 +48,6 @@
     <ClInclude Include="CDUIButton.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="Types.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="util.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="CQueue.h">
       <Filter>头文件</Filter>
     </ClInclude>
@@ -81,6 +78,30 @@
     <ClInclude Include="CGraphic.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="CXml.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CTools.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="util.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="pugixml\pugiconfig.hpp">
+      <Filter>pugixml</Filter>
+    </ClInclude>
+    <ClInclude Include="pugixml\pugixml.hpp">
+      <Filter>pugixml</Filter>
+    </ClInclude>
+    <ClInclude Include="CParseXml.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="ComponentsCollection.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="ParseAttribute.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Player_DUI.cpp">
@@ -102,12 +123,6 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="CDUIButton.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="Types.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="util.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="CQueue.cpp">
@@ -138,6 +153,27 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="CGraphic.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CXml.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CTools.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="util.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="pugixml\pugixml.cpp">
+      <Filter>pugixml</Filter>
+    </ClCompile>
+    <ClCompile Include="CParseXml.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="ComponentsCollection.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="ParseAttribute.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

@@ -2,7 +2,7 @@
 
 #include "pch.h"
 #include "CPlayAudioBySDL.h"
-#include "util.h"
+#include "CTools.h"
 
 class CSDLInit
 {
@@ -105,9 +105,6 @@ int CPlayAudioBySDL::set_play_speed(double sp)
 		wanted_spec.userdata = this;
 		if (SDL_OpenAudio(&wanted_spec, NULL) < 0)
 		{
-			char buf[128] = { 0 };
-			sprintf(buf, "SDL_OpenAudio: %s\n", SDL_GetError());
-			util::log(buf);
 			return -1;
 		}
 		SDL_PauseAudio(0);

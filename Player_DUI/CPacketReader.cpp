@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "CPacketReader.h"
+#include "CTools.h"
 #include "util.h"
 
 char const* CPacketReader::FLUSH = "CODEC_FLUSH";	//解码器清空标志,快进/快退时使用
@@ -129,7 +130,7 @@ int CPacketReader::read_thread()
 		}
 		if (is_cache_full() == true)	//最多缓存2000个packet
 		{
-			util::thread_sleep(10);
+			CTools::thread_sleep(10);
 			continue;
 		}
 
@@ -149,7 +150,7 @@ int CPacketReader::read_thread()
 				if (n == AVERROR_EOF)
 				{
 					b_eof = true;	//文件已读完
-					util::thread_sleep(10);
+					CTools::thread_sleep(10);
 					continue;
 				}
 				else

@@ -4,25 +4,17 @@ Author: victor cheng
 #include "pch.h"
 #include "Div.h"
 #include "UIMgr.h"
-#include "util.h"
+#include "CTools.h"
 
 CDiv::CDiv(std::string strID)
 {
 	m_strID = strID;
-	m_nLeftRelative = 0;
-	m_nTopRelative = 0;
-	m_nWidth = 0;
-	m_nHeight = 0;
 	m_nZIndex = 0;
 	m_bFocus = false;
-	m_bClip = false;
+	
 	m_bMouseMove = false;
 	m_pDivParent = NULL;
-	m_bVisible = true;
-	//
 	//m_strFormat.SetFormatFlags(Gdiplus::StringFormatFlagsNoWrap);
-	m_font.fontName = L"微软雅黑";
-	m_font.fontSize = 12;
 	//
 	m_mousedown = NULL;
 	m_mouseup = NULL;
@@ -31,10 +23,43 @@ CDiv::CDiv(std::string strID)
 	m_ml = NULL;
 	//
 	//m_borderColor = Corona::Color(255, 255, 0, 0);
+	//m_backgroundColor = Corona::Color(255, 255, 0, 0);
 }
 
 CDiv::~CDiv(void)
 {
+}
+
+DivPtr CDiv::build(std::string const& id)
+{
+	auto pDiv = std::make_shared<CDiv>(id);
+	return pDiv;
+}
+
+void CDiv::setID(std::string const& id)
+{
+	this->m_strID = id;
+}
+
+DivPtr CDiv::clone(DivPtr pParent)
+{
+	DivPtr p = CDiv::build("");
+	*p = *this;
+	p->m_children.clear();
+	p->m_pDivParent = NULL;
+	for (auto it = m_children.begin(); it != m_children.end(); it++)
+	{
+		for (auto it2 = it->second.begin(); it2 != it->second.end(); it2++)
+		{
+			DivPtr pChild = (*it2)->clone(p);
+			p->addChild(pChild);
+		}
+	}
+	if (pParent)
+	{
+		pParent->addChild(p);
+	}
+	return p;
 }
 
 std::string const& CDiv::getID()
@@ -46,47 +71,121 @@ CUIMgr* CDiv::getUIMgr()
 {
 	return m_pUIMgr;
 }
-void CDiv::setPosition(int nLeft, int nTop)
+
+void CDiv::setLeft(int left, DIV_STATE state /* = STATE_NORMAL*/)
 {
-	m_nLeftRelative = nLeft;
-	m_nTopRelative = nTop;
+	if (state == STATE_NORMAL)
+	{
+		m_styleNormal.m_nLeftRelative = left;
+		m_styleHover.m_nLeftRelative = left;
+	}
+	else  //(state == STATE_HOVER)
+	{
+		m_styleHover.m_nLeftRelative = left;
+	}
+}
+
+void CDiv::setTop(int top, DIV_STATE state /* = STATE_NORMAL*/)
+{
+	if (state == STATE_NORMAL)
+	{
+		m_styleNormal.m_nTopRelative = top;
+		m_styleHover.m_nTopRelative = top;
+	}
+	else  //(state == STATE_HOVER)
+	{
+		m_styleHover.m_nTopRelative = top;
+	}
+}
+
+void CDiv::setPosition(int nLeft, int nTop, DIV_STATE state /* = STATE_NORMAL*/)
+{
+	setLeft(nLeft);
+	setTop(nTop);
 }
 POINT CDiv::getPosition()
 {
-	POINT pt = { m_nLeftRelative, m_nTopRelative };
-	return pt;
+	if (m_bMouseMove)
+	{
+		POINT pt = { m_styleHover.m_nLeftRelative, m_styleHover.m_nTopRelative };
+		return pt;
+	}
+	else
+	{
+		POINT pt = { m_styleNormal.m_nLeftRelative, m_styleNormal.m_nTopRelative };
+		return pt;
+	}
+	
 }
-void CDiv::setWidth(int nWidth)
+void CDiv::setWidth(int nWidth, DIV_STATE state /* = STATE_NORMAL*/)
 {
-	m_nWidth = nWidth;
+	if (state == STATE_NORMAL)
+	{
+		m_styleNormal.m_nWidth = nWidth;
+		m_styleHover.m_nWidth = nWidth;
+	}
+	else  //(state == STATE_HOVER)
+	{
+		m_styleHover.m_nWidth = nWidth;
+	}
 }
 int CDiv::getWidth()
 {
-	return m_nWidth;
+	if (m_bMouseMove)
+	{
+		return m_styleHover.m_nWidth;
+	}
+	else
+	{
+		return m_styleNormal.m_nWidth;
+	}
+	
 }
-void CDiv::setHeight(int nHeight)
+void CDiv::setHeight(int nHeight, DIV_STATE state /* = STATE_NORMAL*/)
 {
-	m_nHeight = nHeight;
+	if (state == STATE_NORMAL)
+	{
+		m_styleNormal.m_nHeight = nHeight;
+		m_styleHover.m_nHeight = nHeight;
+	}
+	else  //(state == STATE_HOVER)
+	{
+		m_styleHover.m_nHeight = nHeight;
+	}
 }
 
 int CDiv::getHeight()
 {
-	return m_nHeight;
+	if (m_bMouseMove)
+	{
+		return m_styleHover.m_nHeight;
+	}
+	else
+	{
+		return m_styleNormal.m_nHeight;
+	}
 }
 
 POINT CDiv::getAbsPosition()
 {
 	POINT pt = { 0 };
+	int l = m_styleNormal.m_nLeftRelative;
+	int t = m_styleNormal.m_nTopRelative;
+	if (m_bMouseMove)
+	{
+		int l = m_styleHover.m_nLeftRelative;
+		int t = m_styleHover.m_nTopRelative;
+	}
 	if (m_pDivParent != NULL)
 	{
 		POINT ptParent = m_pDivParent->getAbsPosition();
-		pt.x = ptParent.x + m_nLeftRelative;
-		pt.y = ptParent.y + m_nTopRelative;
+		pt.x = ptParent.x + l;
+		pt.y = ptParent.y + t;
 	}
 	else
 	{
-		pt.x = m_nLeftRelative;
-		pt.y = m_nTopRelative;
+		pt.x = l;
+		pt.y = t;
 	}
 	return pt;
 }
@@ -97,13 +196,14 @@ void CDiv::setVisible(bool bVisible)
 	{
 		int i = 0;
 	}
-	m_bVisible = bVisible;
+	m_styleNormal.m_bVisible = bVisible;
+	m_styleHover.m_bVisible = bVisible;
 }
 
 bool CDiv::isVisible()
 {
 	//只有当父元素和自己都是可见状态时，才可见
-	return m_bVisible;
+	return m_styleNormal.m_bVisible;
 }
 
 void CDiv::setZIndex(int nZIndex)
@@ -116,14 +216,29 @@ int CDiv::getZIndex()
 	return m_nZIndex;
 }
 
-void CDiv::setClip(bool bClip)
+void CDiv::setClip(bool bClip, DIV_STATE state /* = STATE_NORMAL*/)
 {
-	m_bClip = bClip;
+	if (state == STATE_NORMAL)
+	{
+		m_styleNormal.m_bClip = bClip;
+		m_styleHover.m_bClip = bClip;
+	}
+	else  //(state == STATE_HOVER)
+	{
+		m_styleHover.m_bClip = bClip;
+	}
 }
 
 bool CDiv::isClip()
 {
-	return m_bClip;
+	if (m_bMouseMove)
+	{
+		return m_styleHover.m_bClip;
+	}
+	else
+	{
+		return m_styleNormal.m_bClip;
+	}
 }
 
 void CDiv::setTransparent(bool bTrans)
@@ -136,27 +251,44 @@ bool CDiv::isTransparent()
 	return m_bTransparent;
 }
 
-void CDiv::setBackgroundColor(Corona::Color color)
+void CDiv::setBackgroundColor(Corona::Color color, DIV_STATE state /* = STATE_NORMAL*/)
 {
-	m_backgroundColor = color;
+	if (state == STATE_NORMAL)
+	{
+		m_styleNormal.m_backgroundColor = color;
+		m_styleHover.m_backgroundColor = color;
+	}
+	else  //(state == STATE_HOVER)
+	{
+		m_styleHover.m_backgroundColor = color;
+	}
 }
 
 void CDiv::setBackgroundImage(char* data, int width, int height)
 {
-	m_bkImgData = data;
-	m_nBkImgDataWidth = width;
-	m_nBkImgDataHeight = height;
+	m_styleNormal.m_bkImgData = data;
+	m_styleNormal.m_nBkImgDataWidth = width;
+	m_styleNormal.m_nBkImgDataHeight = height;
+
+	m_styleHover.m_bkImgData = data;
+	m_styleHover.m_nBkImgDataWidth = width;
+	m_styleHover.m_nBkImgDataHeight = height;
 }
 
-void CDiv::setBackgroundImage(std::wstring const& fileName, Corona::Rect const& srcRc)
+void CDiv::setBackgroundImage(std::wstring const& fileName, Corona::Rect const& srcRc, DIV_STATE state /* = STATE_NORMAL*/)
 {
-	m_bkImgSprite.fileName = fileName;
-	m_bkImgSprite.srcRect = srcRc;
-}
-
-void CDiv::setShowFrame(bool bShowFrame)
-{
-	m_bShowFrame = bShowFrame;
+	if (state == STATE_NORMAL)
+	{
+		m_styleNormal.m_bkImgSprite.fileName = fileName;
+		m_styleNormal.m_bkImgSprite.srcRect = srcRc;
+		m_styleHover.m_bkImgSprite.fileName = fileName;
+		m_styleHover.m_bkImgSprite.srcRect = srcRc;
+	}
+	else  //(state == STATE_HOVER)
+	{
+		m_styleHover.m_bkImgSprite.fileName = fileName;
+		m_styleHover.m_bkImgSprite.srcRect = srcRc;
+	}
 }
 
 void CDiv::setDraggable(bool b)
@@ -169,34 +301,97 @@ bool CDiv::isDraggable()
 	return m_bDraggable;
 }
 //
-void CDiv::setFontName(std::wstring const& strFontName)
+void CDiv::setText(std::wstring const& strText, DIV_STATE state /* = STATE_NORMAL*/)
 {
-	m_font.fontName = strFontName;
+	if (state == STATE_NORMAL)
+	{
+		m_styleNormal.m_strText = strText;
+		m_styleHover.m_strText = strText;
+	}
+	else  //(state == STATE_HOVER)
+	{
+		m_styleHover.m_strText = strText;
+	}
 }
-void CDiv::setFontSize(int nFontSize)
+//
+void CDiv::setFontName(std::wstring const& strFontName, DIV_STATE state /* = STATE_NORMAL*/)
 {
-	m_font.fontSize = nFontSize;
+	if (state == STATE_NORMAL)
+	{
+		m_styleNormal.m_font.fontName = strFontName;
+		m_styleHover.m_font.fontName = strFontName;
+	}
+	else  //(state == STATE_HOVER)
+	{
+		m_styleHover.m_font.fontName = strFontName;
+	}
+}
+void CDiv::setFontSize(int nFontSize, DIV_STATE state /* = STATE_NORMAL*/)
+{
+	if (state == STATE_NORMAL)
+	{
+		m_styleNormal.m_font.fontSize = nFontSize;
+		m_styleHover.m_font.fontSize = nFontSize;
+	}
+	else  //(state == STATE_HOVER)
+	{
+		m_styleHover.m_font.fontSize = nFontSize;
+	}
 }
 
-void CDiv::setAlignment(Corona::ALIGNMENT h_align, Corona::ALIGNMENT v_align)
+void CDiv::setAlignment(Corona::ALIGNMENT h_align, Corona::ALIGNMENT v_align, DIV_STATE state /* = STATE_NORMAL*/)
 {
-	m_strFormat.alignment = h_align;
-	m_strFormat.lineAlignment = v_align;
+	if (state == STATE_NORMAL)
+	{
+		m_styleNormal.m_strFormat.alignment = h_align;
+		m_styleNormal.m_strFormat.lineAlignment = v_align;
+		m_styleHover.m_strFormat.alignment = h_align;
+		m_styleHover.m_strFormat.lineAlignment = v_align;
+	}
+	else  //(state == STATE_HOVER)
+	{
+		m_styleHover.m_strFormat.alignment = h_align;
+		m_styleHover.m_strFormat.lineAlignment = v_align;
+	}
 }
 
-void CDiv::setTextColor(Corona::Color color)
+void CDiv::setTextColor(Corona::Color color, DIV_STATE state /* = STATE_NORMAL*/)
 {
-	m_textColor = color;
+	if (state == STATE_NORMAL)
+	{
+		m_styleNormal.m_textColor = color;
+		m_styleHover.m_textColor = color;
+	}
+	else  //(state == STATE_HOVER)
+	{
+		m_styleHover.m_textColor = color;
+	}
 }
-void CDiv::setBorderColor(Corona::Color color)
+void CDiv::setBorderColor(Corona::Color color, DIV_STATE state /* = STATE_NORMAL*/)
 {
-	m_borderColor = color;
+	if (state == STATE_NORMAL)
+	{
+		m_styleNormal.m_borderColor = color;
+		m_styleHover.m_borderColor = color;
+	}
+	else  //(state == STATE_HOVER)
+	{
+		m_styleHover.m_borderColor = color;
+	}
 }
 
-void CDiv::setBorderWidth(int nWidth)
+void CDiv::setBorderWidth(int nWidth, DIV_STATE state /* = STATE_NORMAL*/)
 {
 	//m_pen.SetWidth(float(nWidth));
-	m_borderWidth = nWidth;
+	if (state == STATE_NORMAL)
+	{
+		m_styleNormal.m_borderWidth = nWidth;
+		m_styleHover.m_borderWidth = nWidth;
+	}
+	else  //(state == STATE_HOVER)
+	{
+		m_styleHover.m_borderWidth = nWidth;
+	}
 }
 //
 void CDiv::addChild(DivPtr pDivChild)
@@ -299,11 +494,6 @@ void CDiv::setMouseLeaveCb(MOUSELEAVE ml)
 void CDiv::setMouseLeaveCb(MOUSELEAVE_CALLBACK_WRAPPER cb)
 {
 	m_mlcbWrapper = cb;
-}
-//
-void CDiv::setText(std::wstring const& strText)
-{
-	m_strText = strText;
 }
 //
 bool CDiv::onLButtonDown(int x, int y)
@@ -460,16 +650,29 @@ bool CDiv::onMouseMove(int x, int y)
 		bRet = false;
 	}
 	//
+	DivPtr move_div = NULL;
 	for (auto it = m_children.begin(); it != m_children.end(); it++)
 	{
 		for (auto it2 = it->second.rbegin(); it2 != it->second.rend(); it2++)
 		{
 			if ((*it2)->onMouseMove(x, y))
 			{
-				//bRet = true;
+				move_div = (*it2);
+				//break;
 			}
 		}
 	}
+// 	for (auto it = m_children.begin(); it != m_children.end(); it++)
+// 	{
+// 		for (auto it2 = it->second.rbegin(); it2 != it->second.rend(); it2++)
+// 		{
+// 			//
+// 			if ((*it2) != move_div)
+// 			{
+// 				(*it2)->onMouseLeave();
+// 			}
+// 		}
+// 	}
 
 	//if (PtInRegion(m_rgn, x, y) /*&& m_bMouseMove == false*/)
 	{
@@ -523,15 +726,21 @@ bool CDiv::onMouseLeave()
 
 void CDiv::onPaint(Corona::CGraphic& g)
 {
-	if (m_bVisible == false)
+	Style* style = &m_styleNormal;
+	if (m_bMouseMove)
+	{
+		style = &m_styleHover;
+	}
+	if (style->m_bVisible == false)
 		return;
-	auto enter = [this, &g]()
+
+	auto enter = [this, &g, &style]()
 	{
 		if (this->isClip())		//update clip region
 		{
 			g.save_clip();
 			POINT ptAbs = getAbsPosition();
-			g.set_clip(Corona::Rect{ptAbs.x, ptAbs.y, m_nWidth, m_nHeight});
+			g.set_clip(Corona::Rect{ptAbs.x, ptAbs.y, style->m_nWidth, style->m_nHeight});
 		}
 	};
 	auto leave = [this, &g]()
@@ -544,20 +753,20 @@ void CDiv::onPaint(Corona::CGraphic& g)
 	SafeLeave<void(), void()> sl(enter, leave);
 
 	POINT ptAbs = this->getAbsPosition();
-	Corona::Rect rect{ ptAbs.x, ptAbs.y, m_nWidth, m_nHeight };
- 	g.fill_rectangle(ptAbs.x, ptAbs.y, m_nWidth, m_nHeight, m_backgroundColor);
+	Corona::Rect rect{ ptAbs.x, ptAbs.y, style->m_nWidth, style->m_nHeight };
+ 	g.fill_rectangle(rect.x, rect.y, rect.width, rect.height, style->m_backgroundColor);
 	//todo:background image
-	if (m_bkImgSprite.fileName != L"")
+	if (style->m_bkImgSprite.fileName != L"")
 	{
-		g.draw_image(m_bkImgSprite.fileName, rect, m_bkImgSprite.srcRect);
+		g.draw_image(style->m_bkImgSprite.fileName, rect, style->m_bkImgSprite.srcRect);
 	}
-	if (m_bkImgData != NULL)
+	if (style->m_bkImgData != NULL)
 	{
-		Corona::Rect srcRect{0, 0, m_nBkImgDataWidth, m_nBkImgDataHeight};
-		g.draw_image(m_bkImgData, rect, srcRect);
+		Corona::Rect srcRect{0, 0, style->m_nBkImgDataWidth, style->m_nBkImgDataHeight};
+		g.draw_image(style->m_bkImgData, rect, srcRect);
 	}
-	g.draw_rectangle(ptAbs.x, ptAbs.y, m_nWidth, m_nHeight, m_borderColor, m_borderWidth);
-	g.draw_string(m_strText.c_str(), m_font, rect , m_textColor, m_strFormat);
+	g.draw_rectangle(rect.x, rect.y, rect.width, rect.height, style->m_borderColor, style->m_borderWidth);
+	g.draw_string(style->m_strText.c_str(), style->m_font, rect , style->m_textColor, style->m_strFormat);
 	
 	for (auto it = m_children.begin(); it != m_children.end(); it++)
 	{
@@ -570,11 +779,16 @@ void CDiv::onPaint(Corona::CGraphic& g)
 
 bool CDiv::hitTest(int x, int y)
 {
-	if (m_bVisible == false)
+	Style* style = &m_styleNormal;
+	if (m_bMouseMove)
+	{
+		style = &m_styleHover;
+	}
+	if (style->m_bVisible == false)
 		return false;
 
 	POINT ptAbs = getAbsPosition();
-	RECT rcAbs{ ptAbs.x, ptAbs.y, ptAbs.x + m_nWidth, ptAbs.y + m_nHeight };
+	RECT rcAbs{ ptAbs.x, ptAbs.y, ptAbs.x + style->m_nWidth, ptAbs.y + style->m_nHeight };
 	if (isClip())
 	{
 		if (PtInRect(&rcAbs, POINT{ x, y }))
@@ -670,7 +884,6 @@ void CDiv::setUIMgr(CUIMgr* pUIMgr)
 	m_pUIMgr = pUIMgr;
 	for (auto it = m_children.begin(); it != m_children.end(); it++)
 	{
-		//std::deque<CDiv*>& dq = it->second;
 		std::deque<DivPtr>& dq = it->second;
 		for (auto it2 = dq.begin(); it2 != dq.end(); it2++)
 		{
@@ -681,10 +894,26 @@ void CDiv::setUIMgr(CUIMgr* pUIMgr)
 
 Corona::Rect CDiv::calcChldrenBounds()
 {
-	Corona::Rect rect;
+	Style* style = &m_styleNormal;
+	if (m_bMouseMove)
+	{
+		style = &m_styleHover;
+	}
 
+	POINT ptAbs = getAbsPosition();
+	Corona::Rect rect{ptAbs.x, ptAbs.y, style->m_nWidth, style->m_nHeight};
+	Corona::Rect result;
 
-	return rect;
+	for (auto it = m_children.begin(); it != m_children.end(); it++)
+	{
+		for (auto it2 = it->second.rbegin(); it2 != it->second.rend(); it2++)
+		{
+			Corona::Rect rc = calcChldrenBounds();
+			result = Corona::Rect::Union(rect, rc);
+		}
+	}
+
+	return result;
 }
 
 HFONT CDiv::myCreateFont(std::string strFontName, int nFontSize)

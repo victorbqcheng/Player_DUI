@@ -1,7 +1,7 @@
 #include "pch.h"
 
 #include "CPlayer.h"
-#include "util.h"
+#include "CTools.h"
 
 #define SAFE_CONTINEU(ret)\
 	if (ret != 0)\
@@ -234,7 +234,7 @@ int CPlayer::play_video_thread()
 	{
 		if (ps_state == PS_PAUSING )
 		{
-			util::thread_sleep(2);
+			CTools::thread_sleep(2);
 			continue;
 		}
 		if (ps_state == PS_STOPPED || m_video_decoder.is_no_frame_to_render())

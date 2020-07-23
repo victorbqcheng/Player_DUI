@@ -18,6 +18,7 @@ CDUIProgress::CDUIProgress(std::string id):CDiv(id)
 	m_pDivHandle->setHeight(m_handleLen);
 	m_pDivHandle->setPosition(0, 0);
 	m_pDivHandle->setBackgroundColor(Corona::Color(255, 0, 0));
+	m_pDivHandle->setBackgroundColor(Corona::Color(0, 0, 255), STATE_HOVER);
 	this->addChild(m_pDivHandle);
 }
 
@@ -43,7 +44,7 @@ void CDUIProgress::setPercentageColor(Corona::Color clr)
 	m_pDivCurrentProgress->setBackgroundColor(clr);
 }
 
-void CDUIProgress::setHeight(int nHeight)
+void CDUIProgress::setHeight(int nHeight, DIV_STATE state /*= STATE_NORMAL*/)
 {
 	CDiv::setHeight(nHeight);
 	

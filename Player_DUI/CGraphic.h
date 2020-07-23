@@ -19,12 +19,12 @@ namespace Corona
 	public:
 		Color(BYTE a, BYTE r, BYTE g, BYTE b);
 		Color(BYTE r, BYTE g, BYTE b);
-		Color(unsigned int color);
+		Color(unsigned long color);
 		Color();
-		BYTE a;
-		BYTE r;
-		BYTE g;
 		BYTE b;
+		BYTE g;
+		BYTE r;
+		BYTE a;
 	};
 	class Point
 	{
@@ -42,6 +42,7 @@ namespace Corona
 		int y = 0;
 		int width = 0;
 		int height = 0;
+		static Rect Union(Rect const& src1, Rect const& src2);
 	};
 	enum CombineMode
 	{
@@ -53,6 +54,11 @@ namespace Corona
 	public:
 		std::wstring fileName;
 		Rect srcRect;
+	};
+	class Image
+	{
+	public:
+		static std::tuple<int, int> get_image_size(std::wstring fileName);
 	};
 	class StringFormat
 	{
@@ -109,6 +115,7 @@ namespace Corona
 	Gdiplus::PointF point_2_gp_pointf(Point const& pt);
 
 	Color gp_color_2_color(Gdiplus::Color color);
+	Rect gp_rect_2_rect(Gdiplus::Rect const& rect);
 }
 
 

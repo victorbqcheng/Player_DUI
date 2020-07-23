@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "CGraphic.h"
-#include "util.h"
+#include "CTools.h"
 namespace Corona
 {
 	Color::Color(BYTE a, BYTE r, BYTE g, BYTE b)
@@ -20,7 +20,7 @@ namespace Corona
 		//Color(255, r, g, b);		//error?
 	}
 
-	Color::Color(unsigned int color)
+	Color::Color(unsigned long color)
 	{
 		memcpy(this, &color, sizeof(color));
 	}
@@ -42,6 +42,16 @@ namespace Corona
 	{
 	}
 
+	Rect Rect::Union(Rect const& src1, Rect const& src2)
+	{
+		Gdiplus::Rect s1 = rect_2_gp_rect(src1);
+		Gdiplus::Rect s2 = rect_2_gp_rect(src2);
+		Gdiplus::Rect o;
+		BOOL bRet = Gdiplus::Rect::Union(o, s1, s2);
+		Rect outRect = gp_rect_2_rect(o);
+		return outRect;
+	}
+
 	CGraphic::CGraphic()
 		:m_fillBrush(Gdiplus::Color::Transparent),
 		m_pen(Gdiplus::Color::Transparent),
@@ -52,6 +62,7 @@ namespace Corona
 
 	CGraphic::~CGraphic()
 	{
+		detach();
 	}
 
 	void CGraphic::attach(HWND wnd)
@@ -71,10 +82,12 @@ namespace Corona
 		if (m_hBmpMem != NULL)
 		{
 			DeleteObject(m_hBmpMem);
+			m_hBmpMem = NULL;
 		}
 		if (m_hDCMem != NULL)
 		{
 			DeleteObject(m_hDCMem);
+			m_hDCMem = NULL;
 		}
 	}
 
@@ -112,17 +125,6 @@ namespace Corona
 		m_graphic->FillRectangle(&m_fillBrush, Gdiplus::Rect{x, y, width, height});
 	}
 
-// 	void CGraphic::draw_string(std::string const& str, std::string const& fontName, int fontSize, Rect const& layoutRect, Color color)
-// 	{
-// 		m_format.SetAlignment(Gdiplus::StringAlignmentNear);
-// 		m_format.SetLineAlignment(Gdiplus::StringAlignmentNear);
-// 		Gdiplus::Font font(util::str_2_wstr(fontName).c_str(), (float)fontSize);
-// 		m_textBrush.SetColor(color_2_gp_color(color));
-// 		m_graphic->DrawString(util::str_2_wstr(str).c_str(), -1, &font,
-// 			rect_2_gp_rectf(layoutRect),
-// 			&m_format, &m_textBrush);
-// 	}
-
 	void CGraphic::draw_string(std::wstring const& str, Font& font, Rect const& layoutRect, Color color, StringFormat& format)
 	{
 		m_format.SetAlignment(Gdiplus::StringAlignment(format.alignment));
@@ -144,7 +146,7 @@ namespace Corona
 
 	void CGraphic::draw_image(std::string const& fileName, Rect const& dstRect, Rect const& srcRect)
 	{
-		std::wstring fileName2 = util::str_2_wstr(fileName);
+		std::wstring fileName2 = CTools::str_2_wstr(fileName);
 		this->draw_image(fileName2, dstRect, srcRect);
 	}
 
@@ -261,7 +263,20 @@ namespace Corona
 		return result;
 	}
 
-	
+	Rect gp_rect_2_rect(Gdiplus::Rect const& rect)
+	{
+		Rect result{rect.X, rect.Y, rect.Width, rect.Height};
+		return result;
+	}
+
+	std::tuple<int, int> Image::get_image_size(std::wstring fileName)
+	{
+		Gdiplus::Image* img = Gdiplus::Image::FromFile(fileName.c_str());
+		int w = img->GetWidth();
+		int h = img->GetHeight();
+		delete img;
+		return std::make_tuple(w, h);
+	}
 
 }
 

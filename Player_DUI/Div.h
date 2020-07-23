@@ -11,10 +11,8 @@ Author: victor cheng
 #include <deque>
 #include <map>
 #include <gdiplus.h>
-
 #include <functional>
 
-#include "Types.h"
 #include "CGraphic.h"
 
 class CDiv;
@@ -45,24 +43,61 @@ typedef EVENT_CALLBACK_WRAPPER CLICK_CALLBACK_WRAPPER;
 typedef EVENT_CALLBACK_WRAPPER MOUSEMOVE_CALLBACK_WRAPPER;
 typedef EVENT_CALLBACK_WRAPPER MOUSELEAVE_CALLBACK_WRAPPER;
 
+struct Style{ 
+	//位置
+	int m_nLeftRelative = 0;
+	int m_nTopRelative = 0;
+	//大小
+	int m_nWidth = -1;
+	int m_nHeight = -1;
+	//可见
+	bool m_bVisible = true;
+	//剪裁
+	bool m_bClip = false;
+	//背景
+	Corona::Color m_backgroundColor;
+	Corona::ImageSprite m_bkImgSprite;
+	char* m_bkImgData = NULL;
+	int m_nBkImgDataWidth = 0;
+	int m_nBkImgDataHeight = 0;
+	//边框
+	Corona::Color m_borderColor;
+	int m_borderWidth = 1;
+	//文字
+	Corona::StringFormat m_strFormat;
+	Corona::Color m_textColor;
+	Corona::Font m_font;
+	std::wstring m_strText;
+};
+
+enum DIV_STATE
+{
+	STATE_NORMAL,
+	STATE_HOVER
+};
+
 class CDiv
 {
 	friend class CUIMgr;
 public:
 	CDiv(std::string strID);
-public:
 	virtual ~CDiv(void);
+public:
+	static DivPtr build(std::string const& id);
+	void setID(std::string const& id);
+	DivPtr clone(DivPtr pParent);
 	std::string const& getID();
 	CUIMgr* getUIMgr();
-
-	void setPosition(int nLeft, int nTop);
+	void setLeft(int left, DIV_STATE=STATE_NORMAL);
+	void setTop(int top, DIV_STATE = STATE_NORMAL);
+	void setPosition(int nLeft, int nTop, DIV_STATE = STATE_NORMAL);
 	POINT getPosition();
 	POINT getAbsPosition();
 
-	void setWidth(int nWidth);
+	void setWidth(int nWidth, DIV_STATE = STATE_NORMAL);
 	int getWidth();
 	
-	virtual void setHeight(int nHeight);
+	virtual void setHeight(int nHeight, DIV_STATE = STATE_NORMAL);
 	int getHeight();
 	
 	void setVisible(bool bVisible);
@@ -71,33 +106,30 @@ public:
 	void setZIndex(int nZIndex);
 	int getZIndex();
 	
-	void setClip(bool bClip);
+	void setClip(bool bClip, DIV_STATE = STATE_NORMAL);
 	bool isClip();
 
 	void setTransparent(bool bTrans);
 	bool isTransparent();
 	
 	void addChild(DivPtr pDiv);
-	//CDiv* getChildByID(std::string const& strID);
 	DivPtr getChildByID(std::string const& strID);
 	void setParent(CDiv* pDivParent);
 
 	void setDraggable(bool b);
 	bool isDraggable();
 
-	void setShowFrame(bool bShowFrame);
+	void setText(std::wstring const& strText, DIV_STATE state = STATE_NORMAL);
+	void setFontName(std::wstring const& strFontName, DIV_STATE state = STATE_NORMAL);
+	void setFontSize(int nFontSize, DIV_STATE state = STATE_NORMAL);
+	void setAlignment(Corona::ALIGNMENT h_align= Corona::ALIGNMENT_NEAR, Corona::ALIGNMENT v_align= Corona::ALIGNMENT_NEAR, DIV_STATE state = STATE_NORMAL);
+	void setTextColor(Corona::Color color, DIV_STATE state = STATE_NORMAL);
 
-	void setText(std::wstring const& strText);
-	void setFontName(std::wstring const& strFontName);
-	void setFontSize(int nFontSize);
-	void setAlignment(Corona::ALIGNMENT h_align= Corona::ALIGNMENT_NEAR, Corona::ALIGNMENT v_align= Corona::ALIGNMENT_NEAR);
-	void setTextColor(Corona::Color color);
-
-	void setBorderColor(Corona::Color color);
-	void setBorderWidth(int nWidth);
+	void setBorderColor(Corona::Color color, DIV_STATE state = STATE_NORMAL);
+	void setBorderWidth(int nWidth, DIV_STATE state = STATE_NORMAL);
 	//
-	void setBackgroundColor(Corona::Color color);	
-	void setBackgroundImage(std::wstring const& fileName, Corona::Rect const& srcRc);
+	void setBackgroundColor(Corona::Color color, DIV_STATE state = STATE_NORMAL);
+	void setBackgroundImage(std::wstring const& fileName, Corona::Rect const& srcRc, DIV_STATE state = STATE_NORMAL);
 	void setBackgroundImage(char* data, int width, int height);	//data:RGB数据.播放器使用
 	
 	//message callback
@@ -130,45 +162,19 @@ protected:
 	std::string m_strID;
 	CUIMgr* m_pUIMgr;
 	CDiv* m_pDivParent;
-	//位置
-	int m_nLeftRelative;
-	int m_nTopRelative;
-	//大小
-	int m_nWidth;
-	int m_nHeight;
-	//
 	int m_nZIndex;
-	//可见
-	bool m_bVisible = true;
-	//剪裁
-	bool m_bClip;
-	//背景
-	Corona::Color m_backgroundColor;
-	Corona::ImageSprite m_bkImgSprite;
-	char* m_bkImgData = NULL;
-	int m_nBkImgDataWidth = 0;
-	int m_nBkImgDataHeight = 0;
-	//边框
-	Corona::Color m_borderColor;
-	int m_borderWidth = 1;
-	//文字
-	Corona::StringFormat m_strFormat;
-	Corona::Color m_textColor;
-	Corona::Font m_font;
-	std::wstring m_strText;
-	//
 	bool m_bDraggable = false;
 	//
 	bool m_bTransparent = false;	//true:鼠标消息可以穿透
+	//
+	Style m_styleNormal;
+	Style m_styleHover;
 	//
 	bool m_bFocus;
 	//
 	bool m_bMouseMove;
 	//子元素
-	//std::map<int, std::deque<CDiv*> > m_children;	//z-index -- children
 	std::map<int, std::deque<DivPtr>> m_children;	//z-index -- children
-	//
-	bool m_bShowFrame = true;		//是否显示区域边框
 	//callback functions
 	MOUSEDOWN m_mousedown = NULL;
 	EVENT_CALLBACK_WRAPPER m_mdcbWrapper;

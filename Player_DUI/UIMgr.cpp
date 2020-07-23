@@ -5,29 +5,18 @@ Author: victor cheng 2019
 
 #include "pch.h"
 
+#include <functional>
+
 #include "UIMgr.h"
 #include "Div.h"
-#include "util.h"
+#include "CTools.h"
+#include "ComponentsCollection.h"
 
 
-#define REGISTER_PARSE_ATTR_METHOD(attr)\
-	m_vecParseAttrMethods.push_back(&CUIMgr::parseAttr_##attr);
 
 CUIMgr::CUIMgr( int nID )
 {
 	m_nTimerID = nID;
-	REGISTER_PARSE_ATTR_METHOD(left);
-	REGISTER_PARSE_ATTR_METHOD(width);
-	REGISTER_PARSE_ATTR_METHOD(height);
-	REGISTER_PARSE_ATTR_METHOD(bkcolor);
-	REGISTER_PARSE_ATTR_METHOD(borderWidth);
-	REGISTER_PARSE_ATTR_METHOD(borderColor);
-	REGISTER_PARSE_ATTR_METHOD(fontName);
-	REGISTER_PARSE_ATTR_METHOD(fontSize);
-	REGISTER_PARSE_ATTR_METHOD(text);
-	REGISTER_PARSE_ATTR_METHOD(textColor);
-	REGISTER_PARSE_ATTR_METHOD(textFormat);
-	REGISTER_PARSE_ATTR_METHOD(onclick);
 }
 
 CUIMgr::~CUIMgr(void)
@@ -48,8 +37,9 @@ bool CUIMgr::hookWndMsg(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	{
 	case WM_CREATE:
 		{
-			attach(hWnd);
-			m_graphic.attach(hWnd);
+			//ComponentsCollection::Instance().parseComponents("./res/components");
+			//parseResource2("./res/main.xml");
+			attach(hWnd);		
 			SetTimer(hWnd, m_nTimerID, 30, NULL);
 		}
 		break;
@@ -102,50 +92,20 @@ bool CUIMgr::hookWndMsg(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	}
 	return true;
 }
-bool CUIMgr::parseResource(std::string strFileName)
+
+
+bool CUIMgr::parseResource2(std::string fileName)
 {
-	MSXML2::IXMLDOMDocument2Ptr xmlDoc;
-	xmlDoc.CreateInstance(__uuidof(MSXML2::DOMDocument30));
-
-	MSXML2::IXMLDOMNodePtr divNode = NULL;
-	xmlDoc->load(strFileName.c_str());
-	
-	divNode = xmlDoc->selectSingleNode("div");
-	
-	auto pDiv = parseDiv(divNode);
-	this->addElement(pDiv);
-	return true;
-}
-bool CUIMgr::parseResource(char const* buf)
-{
-	MSXML2::IXMLDOMDocument2Ptr xmlDoc;
-	xmlDoc.CreateInstance(__uuidof(MSXML2::DOMDocument30));
-
-	MSXML2::IXMLDOMNodePtr divNode = NULL;
-	xmlDoc->loadXML(buf);
-
-	divNode = xmlDoc->selectSingleNode("div");
-
-	auto pDiv = parseDiv(divNode);
-	this->addElement(pDiv);
-	return true;
-}
-bool CUIMgr::parseResource(int nResID)
-{
-	HRSRC hRes = ::FindResourceA(NULL, MAKEINTRESOURCEA(nResID), "xml");
-	if(NULL == hRes)
+	DivPtr pRoot = m_parseXML.parseResource(CTools::str_2_wstr(fileName));
+	if (pRoot)
 	{
-		return FALSE;
+		setRoot(pRoot);
+		return true;
 	}
-	HGLOBAL hG = ::LoadResource(NULL, hRes);
-	if(hG == NULL)
-	{
-		return FALSE;
-	}
-	char* buf = (char*)LockResource(hG);
-	return this->parseResource(buf);
+	return false;
 }
-void CUIMgr::registerClickHandler(std::string strHandlerName, CLICK ck)
+
+void CUIMgr::registerClickHandler(std::string strHandlerName, EVENT_CALLBACK_WRAPPER ck)
 {
 	m_mapClickHandler[strHandlerName] = ck;
 }
@@ -153,266 +113,28 @@ void CUIMgr::registerClickHandler(std::string strHandlerName, CLICK ck)
 void CUIMgr::attach(HWND hWnd)
 {
 	m_hWndContainer = hWnd;
-
-	HDC hDC = GetDC(m_hWndContainer);
-	m_hDCMem = CreateCompatibleDC(hDC);
-	{
-		m_hBmpMem = CreateCompatibleBitmap(hDC, 2000, 2000);
-		SelectObject(m_hDCMem, m_hBmpMem);
-	}
-	ReleaseDC(hWnd, hDC);
+	m_graphic.attach(hWnd);
 }
 
 void CUIMgr::detach()
 {
-	if (m_hBmpMem != NULL)
-	{
-		DeleteObject(m_hBmpMem);
-	}
-	if (m_hDCMem != NULL)
-	{
-		DeleteObject(m_hDCMem);
-	}
 }
 
-DivPtr CUIMgr::parseDiv(DOMNode divNode)
+void CUIMgr::setRoot(DivPtr pRoot)
 {
-	DOMNodeAttrs attrs = divNode->Getattributes();
-	DOMNode idAttr = attrs->getNamedItem("id");
-	VARIANT varID = idAttr->GetnodeValue();
-	std::string strID = (_bstr_t)varID.bstrVal;
+	m_rootDiv = pRoot;
+	m_rootDiv->setUIMgr(this);
+}
 
-	DivPtr pDiv = std::make_shared<CDiv>(strID);
+DivPtr CUIMgr::getElementByID(std::string strID)
+{
+	DivPtr pDiv = NULL;
 
-	for(size_t i=0; i<m_vecParseAttrMethods.size(); i++)
+	if (m_rootDiv)
 	{
-		(this->*m_vecParseAttrMethods[i])(pDiv, attrs);
+		pDiv = m_rootDiv->getChildByID(strID);
+		return pDiv;
 	}
-
-	DOMNodes childrenNode = divNode->selectNodes("div");
-	for(int i=0; i<childrenNode->Getlength(); i++)
-	{
-		DOMNode divNodeChild = childrenNode->Getitem(i);
-		auto pDivChild = parseDiv(divNodeChild);
-		pDiv->addChild(pDivChild);
-	}
-
-	return pDiv;
-}
-void CUIMgr::parseAttr_left(DivPtr pDiv, DOMNodeAttrs const& attrs)
-{
-	int nLeft = 0;
-	int nTop = 0;
-	DOMNode leftAttr = attrs->getNamedItem("left");
-	if(leftAttr != NULL)
-	{
-		VARIANT varLeft = leftAttr->GetnodeValue();
-		nLeft = atoi((_bstr_t)varLeft.bstrVal);
-	}
-
-	DOMNode topAttr = attrs->getNamedItem("top");
-	if(topAttr != NULL)
-	{
-		VARIANT varTop = topAttr->GetnodeValue();
-		nTop = atoi((_bstr_t)varTop.bstrVal);
-	}
-	pDiv->setPosition(nLeft, nTop);
-}
-void CUIMgr::parseAttr_width(DivPtr pDiv, DOMNodeAttrs const& attrs)
-{
-	DOMNode widthAttr = attrs->getNamedItem("width");
-	if(widthAttr != NULL)
-	{
-		VARIANT varWidth = widthAttr->GetnodeValue();
-		std::string strWidth = (_bstr_t)varWidth.bstrVal;
-		if(strWidth == "full")
-		{
-		}
-		else
-		{
-			int nWidth = atoi(strWidth.c_str());
-			pDiv->setWidth(nWidth);
-		}
-	}
-}
-void CUIMgr::parseAttr_height(DivPtr pDiv, DOMNodeAttrs const& attrs)
-{
-	DOMNode heightAttr = attrs->getNamedItem("height");
-	if(heightAttr != NULL)
-	{
-		VARIANT varHeight = heightAttr->GetnodeValue();
-		std::string strHeight = (_bstr_t)varHeight.bstrVal;
-		if(strHeight == "full")
-		{
-		}
-		else
-		{
-			int nHeight = atoi(strHeight.c_str());
-			pDiv->setHeight(nHeight);
-		}
-	}
-}
-void CUIMgr::parseAttr_bkcolor(DivPtr pDiv, DOMNodeAttrs const& attrs)
-{
-	DOMNode bkcolorAttr = attrs->getNamedItem("bkcolor");
-	if(bkcolorAttr != NULL)
-	{
-		VARIANT varBkcolor = bkcolorAttr->GetnodeValue();
-		std::string strBkColor = ((_bstr_t)varBkcolor.bstrVal);
-		std::vector<std::string> vecBkColor = util::splitString(strBkColor, ",");
-		int nRed = atoi(vecBkColor[0].c_str());
-		int nGreen = atoi(vecBkColor[1].c_str());
-		int nBlue = atoi(vecBkColor[2].c_str());
-		pDiv->setBackgroundColor(Corona::Color(nRed, nGreen, nBlue));
-	}
-}
-void CUIMgr::parseAttr_borderWidth(DivPtr pDiv, DOMNodeAttrs const& attrs)
-{
-	DOMNode borderWidthAttr = attrs->getNamedItem("borderWidth");
-	if(borderWidthAttr != NULL)
-	{
-		VARIANT varBorderWidth = borderWidthAttr->GetnodeValue();
-		int nBorderWidth = atoi((_bstr_t)varBorderWidth.bstrVal);
-		pDiv->setBorderWidth(nBorderWidth);
-	}
-}
-void CUIMgr::parseAttr_borderColor(DivPtr pDiv, DOMNodeAttrs const& attrs)
-{
-	DOMNode borderColorAttr = attrs->getNamedItem("borderColor");
-	if(borderColorAttr != NULL)
-	{
-		VARIANT varBorderColor = borderColorAttr->GetnodeValue();
-		std::string strBorderColor = (_bstr_t)varBorderColor.bstrVal;
-		std::vector<std::string> vecBorderColor = util::splitString(strBorderColor, ",");
-		int nRed = atoi(vecBorderColor[0].c_str());
-		int nGreen = atoi(vecBorderColor[1].c_str());
-		int nBlue = atoi(vecBorderColor[2].c_str());
-		pDiv->setBorderColor(Corona::Color(nRed, nGreen, nBlue));
-	}
-}
-void CUIMgr::parseAttr_fontName(DivPtr pDiv, DOMNodeAttrs const& attrs)
-{
-	DOMNode fontNameAttr = attrs->getNamedItem("fontName");
-	if(fontNameAttr != NULL)
-	{
-		VARIANT varFontName = fontNameAttr->GetnodeValue();
-		std::string strFontName = (_bstr_t)varFontName.bstrVal;
-		pDiv->setFontName(util::str_2_wstr(strFontName));
-	}
-}
-void CUIMgr::parseAttr_fontSize(DivPtr pDiv, DOMNodeAttrs const& attrs)
-{
-	DOMNode fontSizeAttr = attrs->getNamedItem("fontSize");
-	if(fontSizeAttr != NULL)
-	{
-		VARIANT varFontSize = fontSizeAttr->GetnodeValue();
-		int nFontSize = atoi((_bstr_t)varFontSize.bstrVal);
-		pDiv->setFontSize(nFontSize);
-	}
-}
-void CUIMgr::parseAttr_text(DivPtr pDiv, DOMNodeAttrs const& attrs)
-{
-	DOMNode textAttr = attrs->getNamedItem("text");
-	if(textAttr != NULL)
-	{
-		VARIANT varText = textAttr->GetnodeValue();
-		std::string strText = (_bstr_t)varText.bstrVal;
-		pDiv->setText(util::str_2_wstr(strText));
-	}
-}
-void CUIMgr::parseAttr_textColor(DivPtr pDiv, DOMNodeAttrs const& attrs)
-{
-	DOMNode textColorAttr = attrs->getNamedItem("textColor");
-	if(textColorAttr != NULL)
-	{
-		VARIANT varTextColor = textColorAttr->GetnodeValue();
-		std::string strTextColor = (_bstr_t)varTextColor.bstrVal;
-		std::vector<std::string> vecTextColor = util::splitString(strTextColor, ",");
-		int nRed = atoi(vecTextColor[0].c_str());
-		int nGreen = atoi(vecTextColor[1].c_str());
-		int nBlue = atoi(vecTextColor[2].c_str());
-		pDiv->setTextColor(Corona::Color(nRed, nGreen, nBlue));
-	}
-}
-void CUIMgr::parseAttr_onclick(DivPtr pDiv, DOMNodeAttrs const& attrs)
-{
-	DOMNode onclickAttr = attrs->getNamedItem("onclick");
-	if(onclickAttr != NULL)
-	{
-		VARIANT varOnclick = onclickAttr->GetnodeValue();
-		std::string strOnclick = (_bstr_t)varOnclick.bstrVal;
-		std::map<std::string, CLICK>::iterator it = m_mapClickHandler.find(strOnclick);
-		if(it != m_mapClickHandler.end())
-		{
-			pDiv->setClickCb(it->second);
-		}
-	}
-}
-void CUIMgr::parseAttr_textFormat(DivPtr pDiv, DOMNodeAttrs const& attrs)
-{
-	DOMNode textFormatAttr = attrs->getNamedItem("textFormat");
-	if(textFormatAttr != NULL)
-	{
-		VARIANT varTextFormat = textFormatAttr->GetnodeValue();
-		std::string strTextFormat = (_bstr_t)varTextFormat.bstrVal;
-		if(strTextFormat == "HCENTER")
-		{
-			pDiv->setAlignment(Corona::ALIGNMENT_CENTER, Corona::ALIGNMENT_NEAR);
-		}
-		else if(strTextFormat == "VCENTER")
-		{
-			pDiv->setAlignment(Corona::ALIGNMENT_NEAR, Corona::ALIGNMENT_CENTER);
-		}
-		else if(strTextFormat == "CENTER")
-		{
-			pDiv->setAlignment(Corona::ALIGNMENT_CENTER, Corona::ALIGNMENT_CENTER);
-		}
-		else if(strTextFormat == "LEFT")
-		{
-			pDiv->setAlignment(Corona::ALIGNMENT_NEAR, Corona::ALIGNMENT_NEAR);
-		}
-		else if(strTextFormat == "RIGHT")
-		{
-			pDiv->setAlignment(Corona::ALIGNMENT_FAR, Corona::ALIGNMENT_NEAR);
-		}
-	}
-}
-void CUIMgr::addElement(DivPtr pElement)
-{
-	m_elements[pElement->getID()] = pElement;
-	pElement->setUIMgr(this);
-	int nZIndex = pElement->getZIndex();
-	if(m_elements2.find(nZIndex) != m_elements2.end())
-	{
-		m_elements2[nZIndex].push_back(pElement);
-	}
-	else
-	{
-		std::deque<DivPtr> dq;
-		dq.push_front(pElement);
-		m_elements2[nZIndex] = dq;
-	}
-}
-CDiv* CUIMgr::getElementByID(std::string strID)
-{
-	CDiv* pDiv = NULL;
-
-	if(m_elements.find(strID) != m_elements.end())
-	{
-		pDiv = m_elements[strID].get();
-	}
-	else
-	{
-		for (auto it = m_elements.begin(); it!=m_elements.end(); it++)
-		{
-			pDiv = it->second->getChildByID(strID).get();
-			if (pDiv != NULL)
-			{
-				break;
-			}
-		}
-	}
-
 	return pDiv;
 }
 HWND CUIMgr::getHwndContainer()
@@ -421,69 +143,54 @@ HWND CUIMgr::getHwndContainer()
 }
 void CUIMgr::onLButtonDown(int x, int y)
 {
-	for(auto it=m_elements2.rbegin(); it!=m_elements2.rend(); it++)
+	if (m_rootDiv)
 	{
-		for (auto it2 = it->second.rbegin(); it2 != it->second.rend(); it2++)
-		{
-			(*it2)->onLButtonDown(x, y);
-		}
+		m_rootDiv->onLButtonDown(x, y);
 	}
 }
 void CUIMgr::onLButtonUp(int x, int y)
 {
-	for (auto it = m_elements2.rbegin(); it != m_elements2.rend(); it++)
+	if (m_rootDiv)
 	{
-		for (auto it2 = it->second.rbegin(); it2 != it->second.rend(); it2++)
-		{
-			(*it2)->onLButtonUp(x, y);
-		}
+		m_rootDiv->onLButtonUp(x, y);
 	}
 }
 
 void CUIMgr::onLButtonDbClick(int x, int y)
 {
-	for (auto it = m_elements2.rbegin(); it != m_elements2.rend(); it++)
+	if (m_rootDiv)
 	{
-		for (auto it2 = it->second.rbegin(); it2 != it->second.rend(); it2++)
-		{
-			(*it2)->onLButtonDbClick(x, y);
-		}
+		m_rootDiv->onLButtonDbClick(x, y);
 	}
 }
 
 void CUIMgr::onMouseMove(int x, int y)
 {
-	for (auto it = m_elements2.rbegin(); it != m_elements2.rend(); it++)
+	if (m_rootDiv)
 	{
-		for (auto it2 = it->second.rbegin(); it2 != it->second.rend(); it2++)
-		{
-			(*it2)->onMouseMove(x, y);
-		}
+		m_rootDiv->onMouseMove(x, y);
 	}
 }
 void CUIMgr::onMouseLeave()
 {
-	for (auto it = m_elements2.rbegin(); it != m_elements2.rend(); it++)
+	if (m_rootDiv)
 	{
-		for (auto it2 = it->second.rbegin(); it2 != it->second.rend(); it2++)
-		{
-			(*it2)->onMouseLeave();
-		}
+		m_rootDiv->onMouseLeave();
 	}
 }
 
 void CUIMgr::render()
 {
-	m_graphic.begin();
-	for (auto it = m_elements2.begin(); it != m_elements2.end(); it++)
+	std::function<void()> enter = std::bind(&Corona::CGraphic::begin, &m_graphic);
+	std::function<void()> leave = std::bind(&Corona::CGraphic::end, &m_graphic);
+	SafeLeave<void(), void()> sl(enter, leave);
+	
+	if (m_rootDiv)
 	{
-		for (auto it2 = it->second.begin(); it2 != it->second.end(); it2++)
-		{
-			(*it2)->onPaint(m_graphic);
-		}
+		m_rootDiv->onPaint(m_graphic);
 	}
-	m_graphic.end();
 }
+
 
 // void CUIMgr::render()
 // {

@@ -4,15 +4,17 @@
 
 #include "pch.h"
 #include "framework.h"
+#include <functional>
+#include <algorithm>
+
 #include "Player_DUI.h"
 #include "Player_DUIDlg.h"
 #include "afxdialogex.h"
 #include "Div.h"
 #include "CDUIButton.h"
 #include "CDUIProgress.h"
-#include "util.h"
-#include <functional>
-#include <algorithm>
+#include "CTools.h"
+
 
 #define NOMINMAX
 #undef max
@@ -45,7 +47,6 @@ std::string ID_SPEED_MENU_ITEM_0_5X = "speed_0.5X";
 int const BTN_WIDTH = 48;
 int const BTN_HEIGHT = 48;
 
-CPlayerDUIDlg* pDlg = NULL;
 // 用于应用程序“关于”菜单项的 CAboutDlg 对话框
 
 class CAboutDlg : public CDialogEx
@@ -98,11 +99,11 @@ void CPlayerDUIDlg::onBtnPlayClicked(CMouseEvent e)
 	{
 		return;
 	}
-	CDiv* pDivBtnPlay = uiMgr.getElementByID(ID_BTN_PLAY);
+	DivPtr pDivBtnPlay = uiMgr.getElementByID(ID_BTN_PLAY);
 	if(pDivBtnPlay != NULL)
 		pDivBtnPlay->setVisible(false);
 
-	CDiv* pDivBtnPause = uiMgr.getElementByID(ID_BTN_PAUSE);
+	DivPtr pDivBtnPause = uiMgr.getElementByID(ID_BTN_PAUSE);
 	if (pDivBtnPause != NULL)
 		pDivBtnPause->setVisible(true);
 
@@ -125,7 +126,7 @@ void CPlayerDUIDlg::onBtnPlayClicked(CMouseEvent e)
 void CPlayerDUIDlg::onBtnPauseClicked(CMouseEvent e)
 {
 	e.pTarget->setVisible(false);
-	CDiv* pDivBtnContinue = uiMgr.getElementByID(ID_BTN_CONTINUE);
+	DivPtr pDivBtnContinue = uiMgr.getElementByID(ID_BTN_CONTINUE);
 	if (pDivBtnContinue != NULL)
 	{
 		pDivBtnContinue->setVisible(true);
@@ -136,7 +137,7 @@ void CPlayerDUIDlg::onBtnPauseClicked(CMouseEvent e)
 void CPlayerDUIDlg::onBtnContinueClicked(CMouseEvent e)
 {
 	e.pTarget->setVisible(false);
-	CDiv* pDivBtnPause = uiMgr.getElementByID(ID_BTN_PAUSE);
+	DivPtr pDivBtnPause = uiMgr.getElementByID(ID_BTN_PAUSE);
 	if (pDivBtnPause != NULL)
 	{
 		pDivBtnPause->setVisible(true);
@@ -146,23 +147,23 @@ void CPlayerDUIDlg::onBtnContinueClicked(CMouseEvent e)
 
 void CPlayerDUIDlg::onBtnStopClicked(CMouseEvent e)
 {
-	CDiv* pDivBk = uiMgr.getElementByID(ID_DIV_BK);
+	DivPtr pDivBk = uiMgr.getElementByID(ID_DIV_BK);
 	pDivBk->setBackgroundImage(NULL, 0, 0);
 
 	m_bPlaying = false;
 	m_player.stop();
 	m_player.close();
 
-	CDiv* pDivPlayBar = uiMgr.getElementByID(ID_PLAY_BAR);
+	DivPtr pDivPlayBar = uiMgr.getElementByID(ID_PLAY_BAR);
 	if(pDivPlayBar != NULL)
 	{
-		CDiv* pDivBtnPlay = uiMgr.getElementByID(ID_BTN_PLAY);
+		DivPtr pDivBtnPlay = uiMgr.getElementByID(ID_BTN_PLAY);
 		pDivBtnPlay->setVisible(true);
 
-		CDiv* pDivBtnPause = uiMgr.getElementByID(ID_BTN_PAUSE);
+		DivPtr pDivBtnPause = uiMgr.getElementByID(ID_BTN_PAUSE);
 		pDivBtnPause->setVisible(false);
 
-		CDiv* pDivBtnContinue = uiMgr.getElementByID(ID_BTN_CONTINUE);
+		DivPtr pDivBtnContinue = uiMgr.getElementByID(ID_BTN_CONTINUE);
 		pDivBtnContinue->setVisible(false);
 	}
 }
@@ -173,7 +174,7 @@ void CPlayerDUIDlg::onBtnSpeedClicked(CMouseEvent e)
 
 void CPlayerDUIDlg::onBtnSpeedMouseMove(CMouseEvent e)
 {
-	CDiv* pSpeedMenu = uiMgr.getElementByID(ID_SPEED_MENU_CONTAINER);
+	DivPtr pSpeedMenu = uiMgr.getElementByID(ID_SPEED_MENU_CONTAINER);
 	if (pSpeedMenu != NULL)
 	{
 		pSpeedMenu->setVisible(true);
@@ -183,7 +184,7 @@ void CPlayerDUIDlg::onBtnSpeedMouseMove(CMouseEvent e)
 
 void CPlayerDUIDlg::onBtnSpeedMouseLeave(CMouseEvent e)
 {
-	CDiv* pSpeedMenu = uiMgr.getElementByID(ID_SPEED_MENU_CONTAINER);
+	DivPtr pSpeedMenu = uiMgr.getElementByID(ID_SPEED_MENU_CONTAINER);
 	if (pSpeedMenu != NULL)
 	{
 		pSpeedMenu->setVisible(false);
@@ -192,7 +193,7 @@ void CPlayerDUIDlg::onBtnSpeedMouseLeave(CMouseEvent e)
 
 void CPlayerDUIDlg::onProgressBarClicked(CMouseEvent e)
 {
-	CDUIProgress* pProgressBar = (CDUIProgress*)uiMgr.getElementByID(ID_PROGRESS_BAR);
+	CDUIProgress* pProgressBar = (CDUIProgress*)uiMgr.getElementByID(ID_PROGRESS_BAR).get();
 	if (pProgressBar != NULL)
 	{
 		if (m_bPlaying)
@@ -214,7 +215,7 @@ void CPlayerDUIDlg::onDragDbClick(CMouseEvent e)
 
 void CPlayerDUIDlg::createSpeedMenuItem(std::string strID, std::wstring strText, int index)
 {
-	CDiv* pSpeedMenu = uiMgr.getElementByID(ID_SPEED_MENU_CONTAINER);
+	DivPtr pSpeedMenu = uiMgr.getElementByID(ID_SPEED_MENU_CONTAINER);
 	if (pSpeedMenu != NULL)
 	{
 		auto onItemMouseMove = [](CMouseEvent e)
@@ -227,7 +228,7 @@ void CPlayerDUIDlg::createSpeedMenuItem(std::string strID, std::wstring strText,
 		};
 		auto onItemClicked = [this, pSpeedMenu, strText, strID](CMouseEvent e)
 		{
-			CDiv* pBtnSpeed = uiMgr.getElementByID(ID_BTN_SPEED);
+			DivPtr pBtnSpeed = uiMgr.getElementByID(ID_BTN_SPEED);
 			if (pBtnSpeed != NULL)
 			{
 				pBtnSpeed->setText(strText);
@@ -262,7 +263,7 @@ void CPlayerDUIDlg::createSpeedMenuItem(std::string strID, std::wstring strText,
 }
 void CPlayerDUIDlg::on_video_render_cb(char* data, int width, int height)
 {
-	CDiv* pBk = uiMgr.getElementByID(ID_DIV_BK);
+	DivPtr pBk = uiMgr.getElementByID(ID_DIV_BK);
 	pBk->setBackgroundImage(data, width, height);
 }
 void CPlayerDUIDlg::createDUIElement()
@@ -278,7 +279,8 @@ void CPlayerDUIDlg::createDUIElement()
 		pDivBkGround->setHeight(rc.bottom);
 		pDivBkGround->setClip(true);
 		//pDivBkGround->setDraggable(true);
-		uiMgr.addElement(pDivBkGround);
+		//uiMgr.addElement(pDivBkGround);
+		uiMgr.setRoot(pDivBkGround);
 	}
 	auto pDivDrag = CUIMgr::buildDiv(ID_DIV_DRAG);
 	{
@@ -433,7 +435,7 @@ void CPlayerDUIDlg::createDUIElement()
 void CPlayerDUIDlg::showPlayTime(int64_t play_time, int64_t duration)
 {
 	using namespace std::chrono;
-	CDiv* pDivTime = uiMgr.getElementByID(ID_DIV_TIME);
+	DivPtr pDivTime = uiMgr.getElementByID(ID_DIV_TIME);
 	if(pDivTime!=NULL)
 	{
 		milliseconds mill_dr = std::chrono::milliseconds(duration);
@@ -450,10 +452,10 @@ void CPlayerDUIDlg::showPlayTime(int64_t play_time, int64_t duration)
 		char buf[64]{ 0 };
 		sprintf(buf, "%02d:%02d:%02lld / %02d:%02d:%02lld", h_pt.count(), m_pt.count(), s_pt.count(),
 										  h_dr.count(), m_dr.count(), s_dr.count());
-		pDivTime->setText(util::str_2_wstr(buf));
+		pDivTime->setText(CTools::str_2_wstr(buf));
 		//更新进度条
  		double percentage = double(play_time) / double(duration);
- 		CDUIProgress* pProgressBar = (CDUIProgress*)uiMgr.getElementByID(ID_PROGRESS_BAR);
+ 		CDUIProgress* pProgressBar = (CDUIProgress*)uiMgr.getElementByID(ID_PROGRESS_BAR).get();
 		pProgressBar->setPercentage(percentage);		
 	}
 }
@@ -470,7 +472,7 @@ void CPlayerDUIDlg::updateVolume()
 {
 	wchar_t buf[32]{ 0 };
 	wsprintf(buf, L"volume:%02d", m_nVolume);
-	CDiv* pDivVolume = uiMgr.getElementByID(ID_DIV_VOLUME);
+	DivPtr pDivVolume = uiMgr.getElementByID(ID_DIV_VOLUME);
 	pDivVolume->setText(buf);
 
 	int volume =int( double(m_nVolume) / 100 * m_player.get_max_volume());
@@ -527,8 +529,6 @@ BOOL CPlayerDUIDlg::OnInitDialog()
 	SetIcon(m_hIcon, FALSE);		// 设置小图标
 
 	// TODO: 在此添加额外的初始化代码
-	pDlg = this;
-	//SetTimer(555, 20, NULL);
 	createDUIElement();
 	RECT rect;
 	SystemParametersInfo(SPI_GETWORKAREA, 0, &rect, 0);
@@ -623,30 +623,30 @@ void CPlayerDUIDlg::OnSize(UINT nType, int cx, int cy)
 
 	// TODO: 在此处添加消息处理程序代码
 	//int nTop = cy - BTN_HEIGHT;
-	CDiv* pDivBk = uiMgr.getElementByID(ID_DIV_BK);
+	DivPtr pDivBk = uiMgr.getElementByID(ID_DIV_BK);
 	if (pDivBk != NULL)
 	{
 		pDivBk->setWidth(cx);
 		pDivBk->setHeight(cy);
 	}
-	CDiv* pDivDrag = uiMgr.getElementByID(ID_DIV_DRAG);
+	DivPtr pDivDrag = uiMgr.getElementByID(ID_DIV_DRAG);
 	if (pDivDrag != NULL)
 	{
 		pDivDrag->setWidth(cx);
 		pDivDrag->setHeight(cy);
 	}
-	CDiv* pProgressBar = uiMgr.getElementByID(ID_PROGRESS_BAR);
+	DivPtr pProgressBar = uiMgr.getElementByID(ID_PROGRESS_BAR);
 	if(pProgressBar != NULL)
 	{ 
 		pProgressBar->setWidth(cx);
 		pProgressBar->setPosition(0, cy - BTN_HEIGHT - 30);
 	}
-	CDiv* pPlayBar = uiMgr.getElementByID(ID_PLAY_BAR);
+	DivPtr pPlayBar = uiMgr.getElementByID(ID_PLAY_BAR);
 	if (pPlayBar != NULL)
 	{
 		pPlayBar->setWidth(cx);
 	}
-	CDiv* pDivTime = uiMgr.getElementByID(ID_DIV_TIME);
+	DivPtr pDivTime = uiMgr.getElementByID(ID_DIV_TIME);
 	if (pDivTime != NULL)
 	{
 		pDivTime->setPosition(pPlayBar->getWidth() - pDivTime->getWidth() - 5, 0);
@@ -658,7 +658,7 @@ void CPlayerDUIDlg::OnSize(UINT nType, int cx, int cy)
 void CPlayerDUIDlg::OnMouseMove(UINT nFlags, CPoint point)
 {
 	// TODO: 在此添加消息处理程序代码和/或调用默认值
-	CDiv* pPlayBar = uiMgr.getElementByID(ID_PLAY_BAR);
+	DivPtr pPlayBar = uiMgr.getElementByID(ID_PLAY_BAR);
 	RECT rc = {0};
 	GetClientRect(&rc);
 	if (pPlayBar != NULL)
@@ -682,7 +682,7 @@ void CPlayerDUIDlg::OnMouseMove(UINT nFlags, CPoint point)
 void CPlayerDUIDlg::OnMouseLeave()
 {
 	// TODO: 在此添加消息处理程序代码和/或调用默认值
-	CDiv* pPlayBar = uiMgr.getElementByID(ID_PLAY_BAR);
+	DivPtr pPlayBar = uiMgr.getElementByID(ID_PLAY_BAR);
 	RECT rc = { 0 };
 	GetClientRect(&rc);
 	if (pPlayBar != NULL)

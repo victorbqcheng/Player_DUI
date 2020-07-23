@@ -6,8 +6,10 @@
 #include "framework.h"
 #include "Player_DUI.h"
 #include "Player_DUIDlg.h"
-
 #include "GdiPInit.h"
+
+#include "pugixml/pugixml.hpp"
+#include "CParseXml.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -36,7 +38,6 @@ CPlayerDUIApp::CPlayerDUIApp()
 
 CPlayerDUIApp theApp;
 
-
 // CPlayerDUIApp 初始化
 
 BOOL CPlayerDUIApp::InitInstance()
@@ -52,7 +53,6 @@ BOOL CPlayerDUIApp::InitInstance()
 	InitCommonControlsEx(&InitCtrls);
 
 	CWinApp::InitInstance();
-
 
 	AfxEnableControlContainer();
 
