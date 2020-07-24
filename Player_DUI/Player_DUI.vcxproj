@@ -203,6 +203,7 @@
     <ClInclude Include="CPlayAudioBySDL2.h" />
     <ClInclude Include="CPlayer.h" />
     <ClInclude Include="CQueue.h" />
+    <ClInclude Include="CSubtitleDecoder.h" />
     <ClInclude Include="CVideoDecoder.h" />
     <ClInclude Include="CXml.h" />
     <ClInclude Include="Div.h" />
@@ -233,6 +234,7 @@
     <ClCompile Include="CPlayAudioBySDL2.cpp" />
     <ClCompile Include="CPlayer.cpp" />
     <ClCompile Include="CQueue.cpp" />
+    <ClCompile Include="CSubtitleDecoder.cpp" />
     <ClCompile Include="CVideoDecoder.cpp" />
     <ClCompile Include="CXml.cpp" />
     <ClCompile Include="Div.cpp" />

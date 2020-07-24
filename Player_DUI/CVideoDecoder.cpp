@@ -3,11 +3,6 @@
 #include "CTools.h"
 #include "util.h"
 
-#define SAFE_CONTINEU(ret)\
-	if (ret != 0)\
-	{\
-		return -1;\
-	}
 
 CVideoDecoder::CVideoDecoder()
 {
@@ -27,6 +22,7 @@ int CVideoDecoder::open(AVStream* p_stream, int index, CPacketReader* p_packet_r
 	this->p_video_stream = p_stream;
 	this->stream_index = index;
 	this->p_packet_reader = p_packet_reader;
+	util::av_dict_2_map(p_stream->metadata, metadata);
 
 	AVCodecParameters* p_codecpar_video = NULL;
 	p_codecpar_video = p_video_stream->codecpar;
@@ -151,16 +147,21 @@ void CVideoDecoder::flush()
 }
 bool CVideoDecoder::has_flush_flag()
 {
-	std::shared_ptr<AVFrame> p_frame(av_frame_alloc(), &util::av_frame_releaser);
-	p_frame->opaque = (char*)CPacketReader::FLUSH;
-
-	auto pred = [p_frame](std::shared_ptr<AVFrame> ele)->bool
-	{
-		if (p_frame->opaque == ele->opaque)
-			return true;
-		return false;
-	};
-	bool ret = queue_video_frames.find(p_frame, pred);
+	bool ret = false;
+// 	std::shared_ptr<AVFrame> p_frame(av_frame_alloc(), &util::av_frame_releaser);
+// 	p_frame->opaque = (char*)CPacketReader::FLUSH;
+// 
+// 	auto pred = [p_frame](std::shared_ptr<AVFrame> ele)->bool
+// 	{
+// 		if (p_frame->opaque == ele->opaque)
+// 			return true;
+// 		return false;
+// 	};
+//	ret = queue_video_frames.find(p_frame, pred);
+	std::shared_ptr<AVFrame> p_frame;
+	queue_video_frames.front(p_frame);
+	if (p_frame && p_frame->opaque == CPacketReader::FLUSH)
+		ret = true;
 	return ret;
 }
 void CVideoDecoder::clear_data()
@@ -194,6 +195,20 @@ std::shared_ptr<AVFrame> CVideoDecoder::get_frame()
 	{
 		return NULL;
 	}
+}
+
+std::shared_ptr<AVFrame> CVideoDecoder::front_frame()
+{
+	std::shared_ptr<AVFrame> p(NULL);
+	queue_video_frames.front(p);
+	return p;
+}
+
+std::shared_ptr<AVFrame> CVideoDecoder::pop_front_frame()
+{
+	std::shared_ptr<AVFrame> p(NULL);
+	queue_video_frames.pop_front(p);
+	return p;
 }
 
 std::shared_ptr<AVFrame> CVideoDecoder::convert_frame_to_given(std::shared_ptr<AVFrame> p_frm_raw)
@@ -268,12 +283,12 @@ int CVideoDecoder::decode_video_thread()
 		}
 		if (queue_video_frames.size() > 10)		//最多缓存10帧
 		{
-			CTools::thread_sleep(10);
+			CTools::thread_sleep(50);
 			continue;
 		}
 		if (p_packet_reader->video_packets_num() == 0)	//解码太快，等待读取线程
 		{
-			CTools::thread_sleep(10);
+			CTools::thread_sleep(50);
 			continue;
 		}
 

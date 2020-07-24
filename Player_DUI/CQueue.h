@@ -142,14 +142,9 @@ public:
 	bool find(T& t, std::function<bool(T const& t)> pred)
 	{
 		std::lock_guard<std::mutex> lock(m);
-		for (auto it = que.begin(); it != que.end(); it++)
-		{
-			if (pred(*it))
-			{
-				return true;
-			}
-		}
-		return false;
+		if(std::find_if(que.begin(), que.end(), pred) == que.end())
+			return false;
+		return true;
 	}
 private:
 	inner_deque que;

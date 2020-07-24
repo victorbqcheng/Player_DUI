@@ -3,11 +3,6 @@
 #include "CAudioDecoder.h"
 #include "util.h"
 
-#define SAFE_CONTINEU(ret)\
-	if (ret != 0)\
-	{\
-		return -1;\
-	}
 
 CAudioDecoder::CAudioDecoder()
 {
@@ -24,6 +19,7 @@ int CAudioDecoder::open(AVStream* p_stream, int index, CPacketReader* p_packet_r
 	this->p_audio_stream = p_stream;
 	this->stream_index = index;
 	this->p_packet_reader = p_packet_reader;
+	util::av_dict_2_map(p_stream->metadata, metadata);
 
 	AVCodecParameters* p_codec_param = p_audio_stream->codecpar;
 	AVCodec* p_codec_audio = avcodec_find_decoder(p_codec_param->codec_id);
@@ -74,6 +70,7 @@ void CAudioDecoder::close()
 	this->p_audio_stream = NULL;
 	this->stream_index = -1;
 	this->p_packet_reader = NULL;
+	metadata.clear();
 }
 
 int CAudioDecoder::start_decode()
@@ -259,12 +256,12 @@ int CAudioDecoder::decode_audio_thread()
 		}
 		if (queue_audio_frames.size() > 100)
 		{
-			CTools::thread_sleep(10);
+			CTools::thread_sleep(50);
 			continue;
 		}
 		if (p_packet_reader->audio_packets_num() == 0)	//解码太快，等待读取线程
 		{
-			CTools::thread_sleep(10);
+			CTools::thread_sleep(50);
 			continue;
 		}
 

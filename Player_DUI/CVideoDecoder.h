@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CPacketReader.h"
+#include "util.h"
 
 class CVideoDecoder
 {
@@ -23,6 +24,10 @@ public:
 
 	bool is_no_frame_to_render();
 	std::shared_ptr<AVFrame> get_frame();
+
+	std::shared_ptr<AVFrame> front_frame();
+	std::shared_ptr<AVFrame> pop_front_frame();
+
 	std::shared_ptr<AVFrame> convert_frame_to_given(std::shared_ptr<AVFrame> p_frm_raw);		//返回可以直接播放的数据p_frm_given
 	int get_stream_index();
 
@@ -33,9 +38,9 @@ private:
 	bool is_no_packet_to_decode();
 	int decode_video_thread();
 private:
-	std::mutex mutex_for_codec_ctx;
 	AVCodecContext* p_codec_ctx_video = NULL;
 	AVStream* p_video_stream = NULL;	//视频流
+	METADATA_P metadata;
 	int stream_index = -1;	//视频流索引
 	CPacketReader* p_packet_reader = NULL;
 	bool b_stop = false;

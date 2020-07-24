@@ -40,7 +40,7 @@ bool CUIMgr::hookWndMsg(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			//ComponentsCollection::Instance().parseComponents("./res/components");
 			//parseResource2("./res/main.xml");
 			attach(hWnd);		
-			SetTimer(hWnd, m_nTimerID, 30, NULL);
+			SetTimer(hWnd, m_nTimerID, 40, NULL);
 		}
 		break;
 	case WM_LBUTTONDOWN:
@@ -132,8 +132,13 @@ DivPtr CUIMgr::getElementByID(std::string strID)
 
 	if (m_rootDiv)
 	{
-		pDiv = m_rootDiv->getChildByID(strID);
-		return pDiv;
+		if (m_rootDiv->getID() == strID)
+			return m_rootDiv;
+		else
+		{
+			pDiv = m_rootDiv->getChildByID(strID);
+			return pDiv;
+		}
 	}
 	return pDiv;
 }
@@ -181,14 +186,12 @@ void CUIMgr::onMouseLeave()
 
 void CUIMgr::render()
 {
-	std::function<void()> enter = std::bind(&Corona::CGraphic::begin, &m_graphic);
-	std::function<void()> leave = std::bind(&Corona::CGraphic::end, &m_graphic);
-	SafeLeave<void(), void()> sl(enter, leave);
-	
+	m_graphic.begin();
 	if (m_rootDiv)
 	{
 		m_rootDiv->onPaint(m_graphic);
 	}
+	m_graphic.end();
 }
 
 

@@ -2,9 +2,11 @@
 #include "pch.h"
 #include <string>
 
+#include "util.h"
 #include "CPacketReader.h"
 #include "CVideoDecoder.h"
 #include "CAudioDecoder.h"
+#include "CSubtitleDecoder.h"
 #include "CPlayAudioBySDL.h"
 #include "condition_wrapper.h"
 
@@ -56,14 +58,18 @@ private:
 	void init_data();
 	void update_play_time(int64_t t);	//播放时长
 	int play_video_thread();
+	void update_video_frame();
+	void update_subtitle();
 	void audio_callback(Uint8 *stream, int len);
 private:
 	PLAYER_STATE ps_state = PS_STOPPED;
 	AVFormatContext* p_fmt_context = NULL;
+	METADATA_P m_metadata;
 	MEDIA_TYPE mt = MT_UNKNOWN;
 	CPacketReader m_packet_reader;
 	CVideoDecoder m_video_decoder;
 	CAudioDecoder m_audio_decoder;
+	CSubtitleDecoder m_subtitle_decoder;
 	CPlayAudioBySDL m_play_by_sdl;
 	std::chrono::time_point<std::chrono::system_clock> start_time_point;
 
@@ -74,6 +80,7 @@ private:
 	int volume = 0;
 	double play_speed = 1.0;
 	int64_t play_time = 0;	//播放进度，单位:微秒。有可能不是真实的播放时长,比如有倍速播放
+	std::string m_subtitle;
 
 	int audio_buf_index = 0;	//音频缓冲区游标
 	int audio_buf_size = 0;		//音频缓冲区大小

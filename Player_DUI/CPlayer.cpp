@@ -17,7 +17,10 @@ int CPlayer::open(std::string fileName)
 	SAFE_CONTINEU(ret);
 	ret = avformat_find_stream_info(p_fmt_context, NULL);
 	SAFE_CONTINEU(ret);
+	
+	util::av_dict_2_map(p_fmt_context->metadata, m_metadata);
 
+	std::vector<int> a_indexs, sub_indexs;
 	int v_index = -1, a_index = -1;
 	for (unsigned int i = 0; i < p_fmt_context->nb_streams; i++)
 	{
@@ -28,8 +31,14 @@ int CPlayer::open(std::string fileName)
 		if (p_fmt_context->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_AUDIO)
 		{
 			a_index = i;
+			a_indexs.push_back(i);
+		}
+		if (p_fmt_context->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_SUBTITLE)
+		{
+			sub_indexs.push_back(i);
 		}
 	}
+
 	if (v_index != -1)
 	{
 		mt = MT_VIDEO;
@@ -43,7 +52,7 @@ int CPlayer::open(std::string fileName)
 		return -1;
 	}
 
-	m_packet_reader.open(p_fmt_context, v_index, a_index);
+	m_packet_reader.open(p_fmt_context, v_index, a_index, sub_indexs);
 	if (v_index != -1)
 	{		
 		m_video_decoder.open(p_fmt_context->streams[v_index], v_index, &m_packet_reader);
@@ -54,6 +63,11 @@ int CPlayer::open(std::string fileName)
 		
 		m_play_by_sdl.open(m_audio_decoder.get_freq(),
 			m_audio_decoder.get_channels());
+	}
+	if (sub_indexs.size() > 0)
+	{
+		int sub_index = sub_indexs[0];
+		m_subtitle_decoder.open(p_fmt_context->streams[sub_index], sub_index, &m_packet_reader);
 	}
 	return 0;
 }
@@ -68,6 +82,7 @@ void CPlayer::close()
 	m_packet_reader.close();
 	m_video_decoder.close();
 	m_audio_decoder.close();
+	m_subtitle_decoder.close();
 	m_play_by_sdl.close();
 }
 
@@ -96,7 +111,10 @@ int CPlayer::play()
 			//t_play_audio = std::shared_ptr<std::thread>(new std::thread(&CPlayer::play_audio_thread, this));
 		}
 	}
-	
+	if (m_subtitle_decoder.get_stream_index() >= 0)
+	{
+		m_subtitle_decoder.start_decode();
+	}
 	start_time_point = std::chrono::system_clock::now();
 	return 0;
 }
@@ -116,7 +134,7 @@ void CPlayer::stop()
 		t_play_audio->join();
 		t_play_audio.reset();
 	}
-	
+	m_subtitle_decoder.stop_decode();
 	m_video_decoder.stop_decode();
 	m_audio_decoder.stop_decode();
 	m_packet_reader.stop_read();
@@ -230,11 +248,12 @@ void CPlayer::update_play_time(int64_t t)
 int CPlayer::play_video_thread()
 {
 	std::shared_ptr<AVFrame> p_frame;
+	
 	while (true)
 	{
 		if (ps_state == PS_PAUSING )
 		{
-			CTools::thread_sleep(2);
+			CTools::thread_sleep(100);
 			continue;
 		}
 		if (ps_state == PS_STOPPED || m_video_decoder.is_no_frame_to_render())
@@ -243,16 +262,26 @@ int CPlayer::play_video_thread()
 		}
 		if (m_video_decoder.has_flush_flag())
 		{
+			CTools::thread_sleep(50);
 			p_frame.reset();
 		}
-		if (!p_frame)
+
+		update_video_frame();
+		update_subtitle();
+		CTools::thread_sleep(int(double(30)/play_speed));
+	}
+	return 0;
+}
+
+void CPlayer::update_video_frame()
+{
+	std::shared_ptr<AVFrame> p_frame = m_video_decoder.front_frame();
+	if (p_frame)
+	{
+		if (p_frame->opaque == CPacketReader::FLUSH)
 		{
-			p_frame = m_video_decoder.get_frame();
-			if (p_frame && p_frame->opaque == CPacketReader::FLUSH)
-			{
-				p_frame.reset(); //标志FLUSH的Frame, 舍弃
-				continue;
-			}
+			m_video_decoder.pop_front_frame();
+			p_frame.reset(); //标志FLUSH的Frame, 舍弃
 		}
 		else
 		{
@@ -265,12 +294,46 @@ int CPlayer::play_video_thread()
 				{
 					render_callback((char*)(p->data[0]), p_frame->width, p_frame->height);
 				}
+
+				m_video_decoder.pop_front_frame();
 				p_frame.reset();
 			}
 		}
 	}
-	return 0;
 }
+
+void CPlayer::update_subtitle()
+{
+	std::shared_ptr<AVSubtitle> p_subtitle = m_subtitle_decoder.front_subtitle();
+	if (p_subtitle)
+	{
+		if (p_subtitle->pts == AV_NOPTS_VALUE)
+		{
+			m_subtitle_decoder.pop_front_subtitle();	//
+			p_subtitle.reset();
+		}
+		else
+		{
+			int64_t mil_sec_subtitle = m_subtitle_decoder.pts_to_milsecond(p_subtitle->pts);
+			if (mil_sec_subtitle <= play_time)
+			{
+				if (p_subtitle->rects[0]->type == SUBTITLE_ASS)
+				{
+					m_subtitle = CTools::wstr_2_str(CTools::utf8_2_unicode(p_subtitle->rects[0]->ass));
+				}
+				else if (p_subtitle->rects[0]->type == SUBTITLE_TEXT)
+				{
+					m_subtitle = p_subtitle->rects[0]->text;
+				}
+
+				util::log(m_subtitle);
+				m_subtitle_decoder.pop_front_subtitle();
+				p_subtitle.reset();
+			}
+		}
+	}
+}
+
 void CPlayer::audio_callback(Uint8 *stream, int len)
 {
 	int len1;

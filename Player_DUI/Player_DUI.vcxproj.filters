@@ -102,6 +102,9 @@
     <ClInclude Include="ParseAttribute.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="CSubtitleDecoder.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Player_DUI.cpp">
@@ -174,6 +177,9 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="ParseAttribute.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CSubtitleDecoder.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

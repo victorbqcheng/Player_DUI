@@ -16,11 +16,18 @@ CPacketReader::~CPacketReader()
 // 	clear_data();
 }
 
-void CPacketReader::open(AVFormatContext* p_fmt_ctx,int video_stream_index,int audio_stream_index)
+void CPacketReader::open(AVFormatContext* p_fmt_ctx,int video_stream_index,int audio_stream_index, std::vector<int>& subtitle_indexs)
 {
 	this->p_fmt_ctx = p_fmt_ctx;
 	this->video_stream_index = video_stream_index;
 	this->audio_stream_index = audio_stream_index;
+
+	this->subtitle_indexs = subtitle_indexs;
+	for (auto it=subtitle_indexs.begin(); it != subtitle_indexs.end(); it++)
+	{
+		std::shared_ptr<PacketQueue> p = std::make_shared<PacketQueue>();
+		subtitle_queues[*it] = p;
+	}
 }
 
 void CPacketReader::close()
@@ -28,6 +35,7 @@ void CPacketReader::close()
 	this->p_fmt_ctx = NULL;
 	this->video_stream_index = -1;
 	this->audio_stream_index = -1;
+	this->subtitle_queues.clear();
 }
 
 void CPacketReader::start_read()
@@ -64,29 +72,26 @@ int CPacketReader::video_packets_num()
 }
 std::shared_ptr<AVPacket> CPacketReader::get_video_packet()
 {
-	std::shared_ptr<AVPacket> p;
-	if (queue_video_packets.pop_front(p))
-	{
-		return p;
-	}
-	else
-	{
-		std::shared_ptr<AVPacket> p(NULL);
-		return p;
-	}
+	std::shared_ptr<AVPacket> p(NULL);
+	queue_video_packets.pop_front(p);
+	return p;
 }
 std::shared_ptr<AVPacket> CPacketReader::get_audio_packet()
 {
-	std::shared_ptr<AVPacket> p;
-	if(queue_audio_packets.pop_front(p))
+	std::shared_ptr<AVPacket> p(NULL);
+	queue_audio_packets.pop_front(p);
+	return p;
+}
+
+std::shared_ptr<AVPacket> CPacketReader::get_subtitle_packet()
+{
+	std::shared_ptr<AVPacket> p(NULL);
+	auto it = subtitle_queues.begin();
+	if (it != subtitle_queues.end())
 	{
-		return p;
-	}
-	else
-	{
-		std::shared_ptr<AVPacket> p(NULL);
-		return p;
-	}
+		it->second->pop_front(p);
+	}	
+	return p;
 }
 
 void CPacketReader::flush()
@@ -105,18 +110,44 @@ int CPacketReader::audio_packets_num()
 {
 	return queue_audio_packets.size();
 }
+
+int CPacketReader::subtitle_packets_num()
+{
+	auto it = subtitle_queues.begin();
+	if (it != subtitle_queues.end())
+	{
+		return it->second->size();
+	}
+	return 0;
+}
+
 void CPacketReader::clear_data()
 {
 	AVPacket* p_packet = NULL;
 	queue_video_packets.clear();
 	queue_audio_packets.clear();
+	for (auto it = subtitle_queues.begin(); it != subtitle_queues.end(); it++)
+	{
+		it->second->clear();
+	}
+	//subtitle_queues.clear();
+}
+//
+bool CPacketReader::is_subtitle_packet(int idx)
+{
+	for (auto it = subtitle_indexs.begin(); it != subtitle_indexs.end(); it++)
+	{
+		if (*it == idx)
+			return true;
+	}
+	return false;
 }
 //
 int CPacketReader::read_thread()
 {
 	auto is_cache_full = [this]()->bool
 	{
-		if (queue_video_packets.size() > 50 || queue_audio_packets.size() > 20)
+		if (queue_video_packets.size() > 50 && queue_audio_packets.size() > 20)
 			return true;
 
 		return false;
@@ -130,7 +161,7 @@ int CPacketReader::read_thread()
 		}
 		if (is_cache_full() == true)	//最多缓存2000个packet
 		{
-			CTools::thread_sleep(10);
+			CTools::thread_sleep(50);
 			continue;
 		}
 
@@ -150,7 +181,7 @@ int CPacketReader::read_thread()
 				if (n == AVERROR_EOF)
 				{
 					b_eof = true;	//文件已读完
-					CTools::thread_sleep(10);
+					CTools::thread_sleep(100);
 					continue;
 				}
 				else
@@ -167,6 +198,12 @@ int CPacketReader::read_thread()
 		{
 			queue_audio_packets.push_back(p);
 		}
+		else if (is_subtitle_packet(p_packet->stream_index))
+		{
+			subtitle_queues[p_packet->stream_index]->push_back(p);
+		}
 	}
 	return 0;
 }
+
+

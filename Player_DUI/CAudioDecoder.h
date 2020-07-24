@@ -3,6 +3,7 @@
 #include <tuple>
 
 #include "CPacketReader.h"
+#include "util.h"
 
 class CAudioDecoder
 {
@@ -37,9 +38,9 @@ private:
 	int set_swr_opts(std::shared_ptr<AVFrame> frame);
 	int decode_audio_thread();
 private:
-	std::mutex mutex_for_codec_ctx;
 	AVCodecContext* p_codec_ctx_audio = NULL;
 	AVStream* p_audio_stream = NULL;
+	METADATA_P metadata;
 	int stream_index = -1;	//ÊÓÆµÁ÷Ë÷Òý
 	CPacketReader* p_packet_reader = NULL;
 	bool b_stop = false;
