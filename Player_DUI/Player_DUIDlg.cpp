@@ -33,6 +33,7 @@ std::string ID_BTN_CONTINUE = "btn_continue";
 std::string ID_BTN_STOP = "btn_stop";
 std::string ID_BTN_SPEED = "btn_speed";
 std::string ID_DIV_TIME = "time";
+std::string ID_DIV_SUBTITLE = "subtitle";
 std::string ID_PLAY_BAR = "play_bar";
 std::string ID_PROGRESS_BAR = "progress_bar";
 std::string ID_PROGRESS_HANDLE = "progress_handle";
@@ -265,6 +266,12 @@ void CPlayerDUIDlg::on_video_render_cb(char* data, int width, int height)
 {
 	DivPtr pBk = uiMgr.getElementByID(ID_DIV_BK);
 	pBk->setBackgroundImage(data, width, height);
+	DivPtr pDivSubtitle = uiMgr.getElementByID(ID_DIV_SUBTITLE);
+	if (pDivSubtitle)
+	{
+		std::string str = m_player.get_subtitle();
+		pDivSubtitle->setText(CTools::str_2_wstr(str));
+	}
 }
 void CPlayerDUIDlg::createDUIElement()
 {
@@ -291,6 +298,16 @@ void CPlayerDUIDlg::createDUIElement()
 		pDivDrag->setLButtonDbClickCb(std::bind(&CPlayerDUIDlg::onDragDbClick, this, std::placeholders::_1));
 		pDivBkGround->addChild(pDivDrag);
 	}
+	auto pDivSubtitle = CUIMgr::buildDiv(ID_DIV_SUBTITLE);
+	{
+		pDivSubtitle->setWidth(rc.right);
+		pDivSubtitle->setHeight(50);
+		pDivSubtitle->setPosition(0, rc.bottom - BTN_HEIGHT - 30 - 50);
+		pDivSubtitle->setTransparent(true);
+		pDivSubtitle->setTextColor(Corona::Color(255, 255, 255));
+		pDivSubtitle->setFormatFlags(Corona::StringFormatFlagsNone);
+		pDivBkGround->addChild(pDivSubtitle);
+	}
 	auto pDivVolume = CUIMgr::buildDiv(ID_DIV_VOLUME);
 	{
 		pDivVolume->setWidth(130);
@@ -304,6 +321,7 @@ void CPlayerDUIDlg::createDUIElement()
 		pDivVolume->setAlignment(Corona::ALIGNMENT_NEAR, Corona::ALIGNMENT_NEAR);
 		pDivBkGround->addChild(pDivVolume);
 	}
+	
 	auto pProgressBar = CUIMgr::buildElement<CDUIProgress>(ID_PROGRESS_BAR);
 	{
 		pProgressBar->setWidth(rc.right - rc.left);
@@ -634,6 +652,12 @@ void CPlayerDUIDlg::OnSize(UINT nType, int cx, int cy)
 	{
 		pDivDrag->setWidth(cx);
 		pDivDrag->setHeight(cy);
+	}
+	DivPtr pDivSubtitle = uiMgr.getElementByID(ID_DIV_SUBTITLE);
+	if (pDivSubtitle)
+	{
+		pDivSubtitle->setWidth(cx);
+		pDivSubtitle->setPosition(0, cy - BTN_HEIGHT - 35 - pDivSubtitle->getHeight());
 	}
 	DivPtr pProgressBar = uiMgr.getElementByID(ID_PROGRESS_BAR);
 	if(pProgressBar != NULL)

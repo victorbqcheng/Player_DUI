@@ -104,6 +104,11 @@ void CPacketReader::flush()
 
 	queue_audio_packets.push_back(p);
 	queue_video_packets.push_back(p);
+	auto it = subtitle_queues.begin();
+	if (it != subtitle_queues.end())
+	{
+		it->second->push_back(p);
+	}
 }
 
 int CPacketReader::audio_packets_num()

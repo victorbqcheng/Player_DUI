@@ -355,6 +355,18 @@ void CDiv::setAlignment(Corona::ALIGNMENT h_align, Corona::ALIGNMENT v_align, DI
 	}
 }
 
+void CDiv::setFormatFlags(Corona::StringFormatFlags formatFlags, DIV_STATE state /*= STATE_NORMAL*/)
+{
+	if (state == STATE_NORMAL)
+	{
+		m_styleNormal.m_strFormat.formatFlags = formatFlags;
+	}
+	else
+	{
+		m_styleHover.m_strFormat.formatFlags = formatFlags;
+	}
+}
+
 void CDiv::setTextColor(Corona::Color color, DIV_STATE state /* = STATE_NORMAL*/)
 {
 	if (state == STATE_NORMAL)

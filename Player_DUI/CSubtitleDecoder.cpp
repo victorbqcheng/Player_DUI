@@ -57,9 +57,9 @@ void CSubtitleDecoder::stop_decode()
 void CSubtitleDecoder::flush()
 {
 	clear_data();
-// 	std::shared_ptr<AVSubtitle> p_frame(, &util::av_frame_releaser);
-// 	p_frame->opaque = (char*)CPacketReader::FLUSH;
-// 	queue_audio_frames.push_back(p_frame);
+	std::shared_ptr<AVSubtitle> p_subtitle = std::make_shared<AVSubtitle>();
+	p_subtitle->pts = AV_NOPTS_VALUE;
+	queue_subtitle_frames.push_back(p_subtitle);
 }
 
 bool CSubtitleDecoder::has_flush_flag()

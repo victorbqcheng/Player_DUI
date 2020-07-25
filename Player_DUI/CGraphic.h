@@ -14,6 +14,13 @@ namespace Corona
 		ALIGNMENT_CENTER,
 		ALIGNMENT_FAR,
 	};
+	enum StringFormatFlags
+	{
+		StringFormatFlagsNone = 0,
+		StringFormatFlagsNoWrap = Gdiplus::StringFormatFlagsNoWrap,
+		StringFormatFlagsLineLimit = Gdiplus::StringFormatFlagsLineLimit,
+		StringFormatFlagsNoClip = Gdiplus::StringFormatFlagsNoClip,
+	};
 	class Color
 	{
 	public:
@@ -65,6 +72,7 @@ namespace Corona
 	public:
 		ALIGNMENT alignment=ALIGNMENT_NEAR;
 		ALIGNMENT lineAlignment = ALIGNMENT_NEAR;
+		StringFormatFlags formatFlags = StringFormatFlagsNoWrap;
 	};
 	class Font
 	{

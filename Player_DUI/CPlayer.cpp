@@ -1,5 +1,7 @@
 #include "pch.h"
 
+#include <regex>
+
 #include "CPlayer.h"
 #include "CTools.h"
 
@@ -190,8 +192,7 @@ void CPlayer::seek_by(int64_t milseconds)
 void CPlayer::seek_to(int64_t milseconds)
 {
 	m_packet_reader.seek(milseconds);
-	m_audio_decoder.flush();
-	m_video_decoder.flush();
+	m_subtitle = "";
 }
 
 int CPlayer::get_width()
@@ -219,6 +220,11 @@ int64_t CPlayer::get_duration()
 int64_t CPlayer::get_play_time()
 {
 	return play_time;
+}
+
+std::string const& CPlayer::get_subtitle()
+{
+	return m_subtitle;
 }
 
 void CPlayer::set_render_callback(std::function<void(char*, int, int)> cb)
@@ -323,10 +329,9 @@ void CPlayer::update_subtitle()
 				}
 				else if (p_subtitle->rects[0]->type == SUBTITLE_TEXT)
 				{
-					m_subtitle = p_subtitle->rects[0]->text;
+					m_subtitle = CTools::wstr_2_str(CTools::utf8_2_unicode(p_subtitle->rects[0]->text));
 				}
-
-				util::log(m_subtitle);
+				//util::log(m_subtitle);
 				m_subtitle_decoder.pop_front_subtitle();
 				p_subtitle.reset();
 			}

@@ -123,6 +123,7 @@ public:
 	void setFontName(std::wstring const& strFontName, DIV_STATE state = STATE_NORMAL);
 	void setFontSize(int nFontSize, DIV_STATE state = STATE_NORMAL);
 	void setAlignment(Corona::ALIGNMENT h_align= Corona::ALIGNMENT_NEAR, Corona::ALIGNMENT v_align= Corona::ALIGNMENT_NEAR, DIV_STATE state = STATE_NORMAL);
+	void setFormatFlags(Corona::StringFormatFlags formatFlags, DIV_STATE state = STATE_NORMAL);
 	void setTextColor(Corona::Color color, DIV_STATE state = STATE_NORMAL);
 
 	void setBorderColor(Corona::Color color, DIV_STATE state = STATE_NORMAL);

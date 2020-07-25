@@ -53,6 +53,7 @@ public:
 	int get_height();
 	int64_t get_duration();		//时长, 单位:微秒
 	int64_t get_play_time();	//
+	std::string const& get_subtitle();
 	void set_render_callback(std::function<void(char* data, int width, int height)> cb);
 private:
 	void init_data();

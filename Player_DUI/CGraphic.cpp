@@ -129,6 +129,7 @@ namespace Corona
 	{
 		m_format.SetAlignment(Gdiplus::StringAlignment(format.alignment));
 		m_format.SetLineAlignment(Gdiplus::StringAlignment(format.lineAlignment));
+		m_format.SetFormatFlags(Gdiplus::StringFormatFlags(format.formatFlags));
 		Gdiplus::Font font2(font.fontName.c_str(), (float)font.fontSize);
 		m_textBrush.SetColor(color_2_gp_color(color));
 		m_graphic->DrawString(str.c_str(), -1, &font2,
