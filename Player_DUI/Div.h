@@ -16,7 +16,6 @@ Author: victor cheng
 #include "CGraphic.h"
 
 class CDiv;
-class CUIMgr;
 
 using DivPtr = std::shared_ptr<CDiv>;
 
@@ -113,7 +112,10 @@ public:
 	bool isTransparent();
 	
 	void addChild(DivPtr pDiv);
+	void removeChild(DivPtr pDiv);
+	void removeAll();		//
 	DivPtr getChildByID(std::string const& strID);
+	void getChildren(std::vector<DivPtr>& v);
 	void setParent(CDiv* pDivParent);
 
 	void setDraggable(bool b);

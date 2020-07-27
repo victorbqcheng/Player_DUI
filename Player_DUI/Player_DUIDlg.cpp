@@ -25,18 +25,22 @@
 #endif
 
 std::string ID_DIV_BK = "background";
+std::string ID_DIV_CAPTION = "caption";
 std::string ID_DIV_VOLUME = "volume";
 std::string ID_DIV_DRAG = "draggable";
+std::string ID_DIV_SHOW_SUBTITLE = "show_subtitle";
 std::string ID_BTN_PLAY = "btn_play";
 std::string ID_BTN_PAUSE = "btn_pause";
 std::string ID_BTN_CONTINUE = "btn_continue";
 std::string ID_BTN_STOP = "btn_stop";
 std::string ID_BTN_SPEED = "btn_speed";
+std::string ID_BTN_SUBTITLE = "btn_subtitle";
 std::string ID_DIV_TIME = "time";
-std::string ID_DIV_SUBTITLE = "subtitle";
 std::string ID_PLAY_BAR = "play_bar";
 std::string ID_PROGRESS_BAR = "progress_bar";
 std::string ID_PROGRESS_HANDLE = "progress_handle";
+
+
 
 std::string ID_SPEED_MENU_CONTAINER = "speed_menu";
 std::string ID_SPEED_MENU_ITEM_1_5X = "speed_1.5X";
@@ -118,7 +122,11 @@ void CPlayerDUIDlg::onBtnPlayClicked(CMouseEvent e)
 		m_player.play();
 		m_bPlaying = true;
 
-
+		auto pDivCaption = uiMgr.getElementByID(ID_DIV_CAPTION);
+		if (pDivCaption)
+		{
+			pDivCaption->setText(CTools::str_2_wstr(m_fileName+"-Player"));
+		}
 		int w = m_player.get_width();
 		int h = m_player.get_height();
 		resizeWindow(w, h);
@@ -266,7 +274,7 @@ void CPlayerDUIDlg::on_video_render_cb(char* data, int width, int height)
 {
 	DivPtr pBk = uiMgr.getElementByID(ID_DIV_BK);
 	pBk->setBackgroundImage(data, width, height);
-	DivPtr pDivSubtitle = uiMgr.getElementByID(ID_DIV_SUBTITLE);
+	DivPtr pDivSubtitle = uiMgr.getElementByID(ID_DIV_SHOW_SUBTITLE);
 	if (pDivSubtitle)
 	{
 		std::string str = m_player.get_subtitle();
@@ -289,6 +297,16 @@ void CPlayerDUIDlg::createDUIElement()
 		//uiMgr.addElement(pDivBkGround);
 		uiMgr.setRoot(pDivBkGround);
 	}
+	auto pDivCaption = CUIMgr::buildDiv(ID_DIV_CAPTION);
+	{
+		pDivCaption->setPosition(0, 0);
+		pDivCaption->setWidth(rc.right);
+		pDivCaption->setHeight(50);
+		pDivCaption->setTransparent(true);
+		pDivCaption->setText(L"Player");
+		pDivCaption->setTextColor(Corona::Color(80, 255, 255, 255));
+		pDivBkGround->addChild(pDivCaption);
+	}
 	auto pDivDrag = CUIMgr::buildDiv(ID_DIV_DRAG);
 	{
 		pDivDrag->setPosition(0, 0);
@@ -298,7 +316,7 @@ void CPlayerDUIDlg::createDUIElement()
 		pDivDrag->setLButtonDbClickCb(std::bind(&CPlayerDUIDlg::onDragDbClick, this, std::placeholders::_1));
 		pDivBkGround->addChild(pDivDrag);
 	}
-	auto pDivSubtitle = CUIMgr::buildDiv(ID_DIV_SUBTITLE);
+	auto pDivSubtitle = CUIMgr::buildDiv(ID_DIV_SHOW_SUBTITLE);
 	{
 		pDivSubtitle->setWidth(rc.right);
 		pDivSubtitle->setHeight(50);
@@ -312,7 +330,7 @@ void CPlayerDUIDlg::createDUIElement()
 	{
 		pDivVolume->setWidth(130);
 		pDivVolume->setHeight(30);
-		pDivVolume->setPosition(10, 10);
+		pDivVolume->setPosition(10, 60);
 		pDivVolume->setTransparent(true);
 		wchar_t buf[32]{ 0 };
 		wsprintf(buf, L"volume:%d", m_nVolume);
@@ -433,6 +451,17 @@ void CPlayerDUIDlg::createDUIElement()
 			createSpeedMenuItem(ID_SPEED_MENU_ITEM_0_75X, L"0.75X", 3);
 			createSpeedMenuItem(ID_SPEED_MENU_ITEM_0_5X, L"0.5X", 4);
 		}
+	}
+	auto pBtnSubtitle = CUIMgr::buildDiv(ID_BTN_SUBTITLE);
+	{
+		int const w = 100;
+		pBtnSubtitle->setPosition(rc.right - 250 -w, 0);
+		pBtnSubtitle->setWidth(w);
+		pBtnSubtitle->setHeight(BTN_HEIGHT);
+		pBtnSubtitle->setText(L"选择字幕");
+		pBtnSubtitle->setAlignment(Corona::ALIGNMENT_CENTER, Corona::ALIGNMENT_CENTER);
+		pBtnSubtitle->setTextColor(Corona::Color(200, 200, 200, 200));
+		pPlayBar->addChild(pBtnSubtitle);
 	}
 	auto pDivTime = CUIMgr::buildDiv(ID_DIV_TIME);
 	{
@@ -653,7 +682,7 @@ void CPlayerDUIDlg::OnSize(UINT nType, int cx, int cy)
 		pDivDrag->setWidth(cx);
 		pDivDrag->setHeight(cy);
 	}
-	DivPtr pDivSubtitle = uiMgr.getElementByID(ID_DIV_SUBTITLE);
+	DivPtr pDivSubtitle = uiMgr.getElementByID(ID_DIV_SHOW_SUBTITLE);
 	if (pDivSubtitle)
 	{
 		pDivSubtitle->setWidth(cx);

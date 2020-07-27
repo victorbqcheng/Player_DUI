@@ -281,45 +281,51 @@ int CVideoDecoder::decode_video_thread()
 		{
 			break;
 		}
-		if (queue_video_frames.size() > 10)		//最多缓存10帧
+		std::shared_ptr<AVPacket> p_packet = p_packet_reader->front_video_packet();
+		if (!p_packet)//解码太快，等待读取线程
 		{
-			CTools::thread_sleep(50);
-			continue;
-		}
-		if (p_packet_reader->video_packets_num() == 0)	//解码太快，等待读取线程
-		{
-			CTools::thread_sleep(50);
+			CTools::thread_sleep(100);
 			continue;
 		}
 
-		std::shared_ptr<AVPacket> p_packet = p_packet_reader->get_video_packet();
 		if ((char*)p_packet->data == CPacketReader::FLUSH)
 		{
 			avcodec_flush_buffers(p_codec_ctx_video);
 			this->flush();
+			p_packet_reader->pop_front_video_packet();
 			continue;
 		}
-		
-		ret = avcodec_send_packet(p_codec_ctx_video, p_packet.get());
-		if (ret != 0)
-		{
-			if (ret == AVERROR_EOF) 
-				continue;
-			//快进时可能会出现该错误,但是直接继续可以正常播放
-			if (ret == AVERROR_INVALIDDATA)	
-				continue;
-		}
-		
-		std::shared_ptr<AVFrame> p_frame(av_frame_alloc(), &util::av_frame_releaser);
-		ret = avcodec_receive_frame(p_codec_ctx_video, p_frame.get());
-		if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF)
-		{
-			continue;
-		}
-		if (ret != 0) 
-			break;
 
-		queue_video_frames.push_back(p_frame);
+		if (queue_video_frames.size() > 100)		//最多缓存100帧
+		{
+			CTools::thread_sleep(100);
+			continue;
+		}
+
+		p_packet = p_packet_reader->pop_front_video_packet();
+		if (p_packet)
+		{
+			ret = avcodec_send_packet(p_codec_ctx_video, p_packet.get());
+			if (ret != 0)
+			{
+				if (ret == AVERROR_EOF)
+					continue;
+				//快进时可能会出现该错误,但是直接继续可以正常播放
+				if (ret == AVERROR_INVALIDDATA)
+					continue;
+			}
+
+			std::shared_ptr<AVFrame> p_frame(av_frame_alloc(), &util::av_frame_releaser);
+			ret = avcodec_receive_frame(p_codec_ctx_video, p_frame.get());
+			if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF)
+			{
+				continue;
+			}
+			if (ret != 0)
+				break;
+
+			queue_video_frames.push_back(p_frame);
+		}
 	}
 	return ret;
 }

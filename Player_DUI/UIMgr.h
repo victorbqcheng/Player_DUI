@@ -12,21 +12,12 @@ Author: victor cheng 2019
 #include "CGraphic.h"
 #include "CParseXml.h"
 
-class CDiv;
-class CUIMgr;
-
-#import <msxml3.dll> rename("value","value_xml")
-#define DOMNode MSXML2::IXMLDOMNodePtr
-#define DOMNodes MSXML2::IXMLDOMNodeListPtr
-#define DOMNodeAttrs MSXML2::IXMLDOMNamedNodeMapPtr
-
-
+//class CDiv;
 class CUIMgr
 {
 private:
 	//CUIMgr(void);
 public:
-	typedef void (CUIMgr::*PARSE_ATTR_METHOD)(std::shared_ptr<CDiv> pDiv, DOMNodeAttrs const& attrs);
 	CUIMgr(int nID);
 	~CUIMgr(void);
 	//static CUIMgr& Instance();

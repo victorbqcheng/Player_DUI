@@ -87,6 +87,7 @@ namespace Corona
 		virtual ~CGraphic();
 		virtual void attach(HWND wnd);
 		virtual void detach();
+		virtual void resize(int w, int h);
 		virtual void begin();
 		virtual void end();
 		virtual void draw_line(Point const& pt1, Point const& pt2, Color color, int lineWidth=0);
@@ -105,6 +106,8 @@ namespace Corona
 		std::shared_ptr<Gdiplus::Image> get_img(std::wstring const& fileName);
 	private:
 		HWND m_wnd;
+		int m_width = 0;
+		int m_height = 0;
 		HDC m_hDCMem = NULL;
 		HBITMAP m_hBmpMem = NULL;
 		std::shared_ptr<Gdiplus::Graphics> m_graphic;

@@ -21,8 +21,8 @@ void CPacketReader::open(AVFormatContext* p_fmt_ctx,int video_stream_index,int a
 	this->p_fmt_ctx = p_fmt_ctx;
 	this->video_stream_index = video_stream_index;
 	this->audio_stream_index = audio_stream_index;
-
 	this->subtitle_indexs = subtitle_indexs;
+
 	for (auto it=subtitle_indexs.begin(); it != subtitle_indexs.end(); it++)
 	{
 		std::shared_ptr<PacketQueue> p = std::make_shared<PacketQueue>();
@@ -70,20 +70,45 @@ int CPacketReader::video_packets_num()
 {
 	return queue_video_packets.size();
 }
-std::shared_ptr<AVPacket> CPacketReader::get_video_packet()
+std::shared_ptr<AVPacket> CPacketReader::front_video_packet()
+{
+	std::shared_ptr<AVPacket> p(NULL);
+	queue_video_packets.front(p);
+	return p;
+}
+std::shared_ptr<AVPacket> CPacketReader::pop_front_video_packet()
 {
 	std::shared_ptr<AVPacket> p(NULL);
 	queue_video_packets.pop_front(p);
 	return p;
 }
-std::shared_ptr<AVPacket> CPacketReader::get_audio_packet()
+
+std::shared_ptr<AVPacket> CPacketReader::front_audio_packet()
+{
+	std::shared_ptr<AVPacket> p(NULL);
+	queue_audio_packets.front(p);
+	return p;
+}
+
+std::shared_ptr<AVPacket> CPacketReader::pop_front_audio_packet()
 {
 	std::shared_ptr<AVPacket> p(NULL);
 	queue_audio_packets.pop_front(p);
 	return p;
 }
 
-std::shared_ptr<AVPacket> CPacketReader::get_subtitle_packet()
+std::shared_ptr<AVPacket> CPacketReader::front_subtitle_packet()
+{
+	std::shared_ptr<AVPacket> p(NULL);
+	auto it = subtitle_queues.begin();
+	if (it != subtitle_queues.end())
+	{
+		it->second->front(p);
+	}
+	return p;
+}
+
+std::shared_ptr<AVPacket> CPacketReader::pop_front_subtitle_packet()
 {
 	std::shared_ptr<AVPacket> p(NULL);
 	auto it = subtitle_queues.begin();

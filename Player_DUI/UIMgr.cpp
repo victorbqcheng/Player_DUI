@@ -12,8 +12,6 @@ Author: victor cheng 2019
 #include "CTools.h"
 #include "ComponentsCollection.h"
 
-
-
 CUIMgr::CUIMgr( int nID )
 {
 	m_nTimerID = nID;
@@ -87,6 +85,7 @@ bool CUIMgr::hookWndMsg(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		{
 			int w = LOWORD(lParam);
 			int h = HIWORD(lParam);
+			m_graphic.resize(w, h);
 		}
 		break;
 	}

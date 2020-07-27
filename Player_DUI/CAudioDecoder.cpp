@@ -254,44 +254,51 @@ int CAudioDecoder::decode_audio_thread()
 		{
 			break;
 		}
-		if (queue_audio_frames.size() > 100)
+
+		std::shared_ptr<AVPacket> p_packet = p_packet_reader->front_audio_packet();
+		if (!p_packet)//解码太快，等待读取线程
 		{
-			CTools::thread_sleep(50);
-			continue;
-		}
-		if (p_packet_reader->audio_packets_num() == 0)	//解码太快，等待读取线程
-		{
-			CTools::thread_sleep(50);
+			CTools::thread_sleep(100);
 			continue;
 		}
 
-		std::shared_ptr<AVPacket> p_packet = p_packet_reader->get_audio_packet();
 		if ((char*)p_packet->data == CPacketReader::FLUSH)
 		{
 			avcodec_flush_buffers(p_codec_ctx_audio);
 			this->flush();
+			p_packet_reader->pop_front_audio_packet();
 			continue;
 		}
 
-		ret = avcodec_send_packet(p_codec_ctx_audio, p_packet.get());
-		if (ret != 0)
+		if (queue_audio_frames.size() > 100)
 		{
-			if (ret == AVERROR_EOF) 
-				continue;
-			//快进时可能会出现该错误,但是直接继续可以正常播放
-			if (ret == AVERROR_INVALIDDATA)	
-				continue;
-		}
-
-		std::shared_ptr<AVFrame> p_frame(av_frame_alloc(), &util::av_frame_releaser);
-		ret = avcodec_receive_frame(p_codec_ctx_audio, p_frame.get());
-		if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF)
-		{
+			CTools::thread_sleep(100);
 			continue;
 		}
-		if (ret != 0) 
-			break;
-		queue_audio_frames.push_back(p_frame);
+		
+		p_packet = p_packet_reader->pop_front_audio_packet();
+		if (p_packet)
+		{
+			ret = avcodec_send_packet(p_codec_ctx_audio, p_packet.get());
+			if (ret != 0)
+			{
+				if (ret == AVERROR_EOF)
+					continue;
+				//快进时可能会出现该错误,但是直接继续可以正常播放
+				if (ret == AVERROR_INVALIDDATA)
+					continue;
+			}
+
+			std::shared_ptr<AVFrame> p_frame(av_frame_alloc(), &util::av_frame_releaser);
+			ret = avcodec_receive_frame(p_codec_ctx_audio, p_frame.get());
+			if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF)
+			{
+				continue;
+			}
+			if (ret != 0)
+				break;
+			queue_audio_frames.push_back(p_frame);
+		}
 	}
 	return 0;
 }

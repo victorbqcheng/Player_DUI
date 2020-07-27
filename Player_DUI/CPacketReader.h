@@ -32,10 +32,13 @@ public:
 	//队列中音频packet的数量
 	int audio_packets_num();
 	int subtitle_packets_num();
-	
-	std::shared_ptr<AVPacket> get_video_packet();
-	std::shared_ptr<AVPacket> get_audio_packet();
-	std::shared_ptr<AVPacket> get_subtitle_packet();
+
+	std::shared_ptr<AVPacket> front_video_packet();
+	std::shared_ptr<AVPacket> pop_front_video_packet();
+	std::shared_ptr<AVPacket> front_audio_packet();
+	std::shared_ptr<AVPacket> pop_front_audio_packet();
+	std::shared_ptr<AVPacket> front_subtitle_packet();
+	std::shared_ptr<AVPacket> pop_front_subtitle_packet();
 private:
 	void flush();
 	void clear_data();

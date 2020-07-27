@@ -12,12 +12,11 @@ int CSubtitleDecoder::open(AVStream* p_stream, int index, CPacketReader* p_packe
 	util::av_dict_2_map(p_stream->metadata, metadata);
 
 	AVCodecParameters* p_codec_param = p_subtitle_stream->codecpar;
-	AVCodec* p_codec_subtitle = avcodec_find_decoder(p_codec_param->codec_id);
-
-	p_codec_ctx_subtitle = avcodec_alloc_context3(p_codec_subtitle);
+	p_codec_ctx_subtitle = avcodec_alloc_context3(NULL);
 	ret = avcodec_parameters_to_context(p_codec_ctx_subtitle, p_codec_param);
 	SAFE_CONTINEU(ret);
 
+	AVCodec* p_codec_subtitle = avcodec_find_decoder(p_codec_param->codec_id);
 	ret = avcodec_open2(p_codec_ctx_subtitle, p_codec_subtitle, NULL);
 	SAFE_CONTINEU(ret);
 
@@ -114,12 +113,13 @@ int CSubtitleDecoder::decode_subtitle_thread()
 		{
 			break;
 		}
+
 		if (p_packet_reader->subtitle_packets_num() == 0)
 		{
-			CTools::thread_sleep(50);
+			CTools::thread_sleep(200);
 			continue;
 		}
-		std::shared_ptr<AVPacket> p_packet = p_packet_reader->get_subtitle_packet();
+		std::shared_ptr<AVPacket> p_packet = p_packet_reader->pop_front_subtitle_packet();
 		if (p_packet)
 		{
 			if ((char*)p_packet->data == CPacketReader::FLUSH)

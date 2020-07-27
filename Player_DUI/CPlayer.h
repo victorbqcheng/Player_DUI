@@ -27,6 +27,11 @@ public:
 		MT_VIDEO,
 		MT_AUDIO
 	};
+	struct SubtitleInfo
+	{
+		std::string title;
+		int index;	//subtitle stream index
+	};
 public:
 	
 	int open(std::string fileName);
@@ -54,11 +59,13 @@ public:
 	int64_t get_duration();		//时长, 单位:微秒
 	int64_t get_play_time();	//
 	std::string const& get_subtitle();
+	void getSubtitleInfo();
 	void set_render_callback(std::function<void(char* data, int width, int height)> cb);
 private:
 	void init_data();
 	void update_play_time(int64_t t);	//播放时长
 	int play_video_thread();
+	bool need_update_video();
 	void update_video_frame();
 	void update_subtitle();
 	void audio_callback(Uint8 *stream, int len);

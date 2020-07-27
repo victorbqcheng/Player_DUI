@@ -6,6 +6,13 @@
 class CSubtitleDecoder
 {
 	using FrameQueue = CDeque<std::shared_ptr<AVSubtitle>>;
+	struct SubtitleStream
+	{
+		AVStream* p_stream;
+		int index;
+		AVCodecContext* p_codec_ctx;
+		AVCodec* p_codec;
+	};
 public:
 	CSubtitleDecoder()
 	{
@@ -34,6 +41,9 @@ private:
 	//bool is_no_packet_to_decode();
 	int decode_subtitle_thread();
 private:
+
+	std::vector<SubtitleStream> m_subtitleStreams;
+
 	AVCodecContext* p_codec_ctx_subtitle = NULL;
 	AVStream* p_subtitle_stream = NULL;	//ÊÓÆµÁ÷
 	METADATA_P metadata;

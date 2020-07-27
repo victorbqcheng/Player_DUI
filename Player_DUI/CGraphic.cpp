@@ -68,10 +68,14 @@ namespace Corona
 	void CGraphic::attach(HWND wnd)
 	{
 		m_wnd = wnd;
+		RECT rc{ 0 };
+		GetClientRect(m_wnd, &rc);
+		m_width = rc.right;
+		m_height = rc.bottom;
 		HDC hDC = GetDC(m_wnd);
 		m_hDCMem = CreateCompatibleDC(hDC);
 		{
-			m_hBmpMem = CreateCompatibleBitmap(hDC, 2000, 2000);
+			m_hBmpMem = CreateCompatibleBitmap(hDC, 5000, 5000);
 			SelectObject(m_hDCMem, m_hBmpMem);
 		}
 		ReleaseDC(wnd, hDC);
@@ -91,6 +95,12 @@ namespace Corona
 		}
 	}
 
+	void CGraphic::resize(int w, int h)
+	{
+		m_width = w;
+		m_height = h;
+	}
+
 	void CGraphic::begin()
 	{
 		m_graphic = std::shared_ptr<Gdiplus::Graphics>(new Gdiplus::Graphics(m_hDCMem));
@@ -100,7 +110,7 @@ namespace Corona
 	void CGraphic::end()
 	{
 		HDC hDC = GetDC(m_wnd);
-		BitBlt(hDC, 0, 0, 2000, 2000, m_hDCMem, 0, 0, SRCCOPY);
+		BitBlt(hDC, 0, 0, m_width, m_height, m_hDCMem, 0, 0, SRCCOPY);
 		ReleaseDC(m_wnd, hDC);
 		m_graphic = NULL;
 	}

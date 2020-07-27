@@ -422,6 +422,27 @@ void CDiv::addChild(DivPtr pDivChild)
 	pDivChild->setParent(this);
 	pDivChild->setUIMgr(m_pUIMgr);
 }
+
+void CDiv::removeChild(DivPtr pDiv)
+{
+	for (auto it = m_children.begin(); it != m_children.end(); it++)
+	{
+		for (auto it2 = it->second.begin(); it2 != it->second.end(); it2++)
+		{
+			if ((*it2) == pDiv)
+			{
+				it->second.erase(it2);
+				break;
+			}
+		}
+	}
+}
+
+void CDiv::removeAll()
+{
+	m_children.clear();
+}
+
 DivPtr CDiv::getChildByID(std::string const& strID)
 {
 	DivPtr pChild = NULL;
@@ -448,6 +469,19 @@ DivPtr CDiv::getChildByID(std::string const& strID)
 	}
 	return pChild;
 }
+
+void CDiv::getChildren(std::vector<DivPtr>& v)
+{
+	for (auto it = m_children.begin(); it != m_children.end(); it++)
+	{
+		for (auto it2 = it->second.begin(); it2 != it->second.end(); it2++)
+		{
+			v.push_back(*it2);
+			(*it2)->getChildren(v);
+		}
+	}
+}
+
 //
 void CDiv::setParent(CDiv* pDivParent)
 {
