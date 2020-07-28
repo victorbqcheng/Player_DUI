@@ -96,18 +96,9 @@ int CPlayAudioBySDL::set_play_speed(double sp)
 	if (state == STATE_PLAYING)
 	{
 		SDL_CloseAudio();
-		SDL_AudioSpec wanted_spec = { 0 };
-		wanted_spec.freq = int(this->freq * play_speed);// p_codec_ctx->sample_rate;
-		wanted_spec.format = AUDIO_S16SYS;
-		wanted_spec.channels = this->out_channels; //out_channels;
-		wanted_spec.samples = 1024;
-		wanted_spec.callback = audio_callback;
-		wanted_spec.userdata = this;
-		if (SDL_OpenAudio(&wanted_spec, NULL) < 0)
-		{
+		if (this->open(this->freq, this->out_channels) < 0)
 			return -1;
-		}
-		SDL_PauseAudio(0);
+		this->play();
 	}
 	return 0;
 }
