@@ -270,7 +270,7 @@ int CAudioDecoder::decode_audio_thread()
 			continue;
 		}
 
-		if (queue_audio_frames.size() > 100)
+		if (queue_audio_frames.size() > 10)
 		{
 			CTools::thread_sleep(100);
 			continue;

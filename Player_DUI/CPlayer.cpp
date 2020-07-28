@@ -258,8 +258,6 @@ void CPlayer::update_play_time(int64_t t)
 
 int CPlayer::play_video_thread()
 {
-	std::shared_ptr<AVFrame> p_frame;
-	
 	while (true)
 	{
 		if (ps_state == PS_PAUSING )
@@ -270,11 +268,6 @@ int CPlayer::play_video_thread()
 		if (ps_state == PS_STOPPED || m_video_decoder.is_no_frame_to_render())
 		{
 			break;
-		}
-		if (m_video_decoder.has_flush_flag())
-		{
-			CTools::thread_sleep(50);
-			p_frame.reset();
 		}
 
 		update_video_frame();
@@ -292,7 +285,6 @@ bool CPlayer::need_update_video()
 		int64_t mil_sec_video = m_video_decoder.pts_to_milsecond(p_frame->pts);
 		if (p_frame->opaque == CPacketReader::FLUSH)
 		{
-			util::log("FLUSH\r\n");
 			return true;
 		}
 		if (mil_sec_video < play_time)
@@ -302,7 +294,13 @@ bool CPlayer::need_update_video()
 	}
 	return false;
 }
-
+void CPlayer::on_render(std::shared_ptr<AVFrame>& p)
+{
+	if (render_callback && p)
+	{
+		render_callback((char*)(p->data[0]), p->width, p->height);
+	}
+}
 void CPlayer::update_video_frame()
 {
 	if (need_update_video())
@@ -313,49 +311,16 @@ void CPlayer::update_video_frame()
 			if (p_frame->opaque == CPacketReader::FLUSH)
 			{
 				m_video_decoder.pop_front_frame();
-				p_frame.reset(); //标志FLUSH的Frame, 舍弃
 			}
 			else
 			{
-				int64_t mil_sec_video = m_video_decoder.pts_to_milsecond(p_frame->pts);
 				std::shared_ptr<AVFrame> p = m_video_decoder.convert_frame_to_given(p_frame);
-				if (render_callback && p)
-				{
-					render_callback((char*)(p->data[0]), p_frame->width, p_frame->height);
-				}
-				p_frame.reset();
+				on_render(p);
 			}
+			p_frame.reset(); 
 		}
 	}
 }
-// void CPlayer::update_video_frame()
-// {
-// 	std::shared_ptr<AVFrame> p_frame = m_video_decoder.front_frame();
-// 	if (p_frame)
-// 	{
-// 		if (p_frame->opaque == CPacketReader::FLUSH)
-// 		{
-// 			m_video_decoder.pop_front_frame();
-// 			p_frame.reset(); //标志FLUSH的Frame, 舍弃
-// 		}
-// 		else
-// 		{
-// 			int64_t mil_sec_video = m_video_decoder.pts_to_milsecond(p_frame->pts);
-// 			if (mil_sec_video < play_time)
-// 			{
-// 				ps_state = PS_PLAYING;
-// 				std::shared_ptr<AVFrame> p = m_video_decoder.convert_frame_to_given(p_frame);
-// 				if (render_callback && p)
-// 				{
-// 					render_callback((char*)(p->data[0]), p_frame->width, p_frame->height);
-// 				}
-// 
-// 				m_video_decoder.pop_front_frame();
-// 				p_frame.reset();
-// 			}
-// 		}
-// 	}
-// }
 
 void CPlayer::update_subtitle()
 {

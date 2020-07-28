@@ -66,6 +66,7 @@ private:
 	void update_play_time(int64_t t);	//播放时长
 	int play_video_thread();
 	bool need_update_video();
+	void on_render(std::shared_ptr<AVFrame>& p);	//通知
 	void update_video_frame();
 	void update_subtitle();
 	void audio_callback(Uint8 *stream, int len);

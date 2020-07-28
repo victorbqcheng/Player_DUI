@@ -223,6 +223,9 @@ std::shared_ptr<AVFrame> CVideoDecoder::convert_frame_to_given(std::shared_ptr<A
 			height,
 			p_frm_given->data,
 			p_frm_given->linesize);
+		p_frm_given->width = p_frm_raw->width;
+		p_frm_given->height = p_frm_raw->height;
+		p_frm_given->pts = p_frm_raw->pts;
 		return p_frm_given;
 	}
 	else
@@ -296,7 +299,7 @@ int CVideoDecoder::decode_video_thread()
 			continue;
 		}
 
-		if (queue_video_frames.size() > 100)		//最多缓存100帧
+		if (queue_video_frames.size() > 10)		//最多缓存100帧
 		{
 			CTools::thread_sleep(100);
 			continue;
